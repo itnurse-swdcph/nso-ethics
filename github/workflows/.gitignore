@@ -1,0 +1,11 @@
+# Never commit real Supabase credentials or generated config.
+config.js
+
+# OS / editor noise
+.DS_Store
+__MACOSX/
+
+# If you later add a Node-based deploy/build step
+node_modules/
+.env
+.env.local
