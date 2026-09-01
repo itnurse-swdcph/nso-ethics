@@ -286,13 +286,6 @@ function renderHome() {
         <div class="eyebrow"><i class="fa-solid fa-hospital"></i> ภารกิจด้านการพยาบาล · โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
         <h1>ระบบแบบสอบถาม<br>และแบบประเมินกลาง</h1>
         <p class="lead">ศูนย์รวมแบบสอบถาม แบบประเมิน และแบบทดสอบความรู้สำหรับบุคลากรพยาบาล ใช้งานสะดวก ปลอดภัย คำนวณคะแนนอัตโนมัติ และรองรับทุกอุปกรณ์</p>
-        <div class="inline-actions">
-          <a href="login.html" class="btn" style="text-decoration:none"><i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบสำหรับบุคลากร</a>
-          <a href="admin.html" class="btn outline" style="text-decoration:none"><i class="fa-solid fa-user-shield"></i> เข้าสู่ระบบผู้ดูแล</a>
-        </div>
-      </section>
-      <aside class="hero-card">
-        <h2>ครบถ้วนในระบบเดียว</h2>
         <div class="feature">
           <div class="feature-icon"><i class="fa-solid fa-bullseye"></i></div>
           <div>
@@ -314,9 +307,62 @@ function renderHome() {
             <span class="muted">เลือกได้ทั้งแบบระบุชื่อและแบบไม่เปิดเผยตัวตนตามมาตรฐาน</span>
           </div>
         </div>
+      </section>
+
+      <aside class="hero-card login-card">
+        <h2>เข้าสู่ระบบ</h2>
+        <p class="muted">เลือกประเภทผู้ใช้งานเพื่อเข้าสู่ระบบ</p>
+
+        <button type="button" class="btn full login-toggle" id="staffToggleBtn" onclick="toggleLoginPanel('staff')">
+          <i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบสำหรับบุคลากร
+          <i class="fa-solid fa-chevron-down toggle-caret"></i>
+        </button>
+        <div class="login-panel" id="staffLoginPanel">
+          <div class="field">
+            <label>ชื่อ-นามสกุล</label>
+            <div style="position:relative">
+              <i class="fa-solid fa-magnifying-glass search-icon"></i>
+              <input id="userSearch" oninput="findUsers()" placeholder="พิมพ์ชื่อเพื่อค้นหา เช่น สมชาย, อรทัย..." autocomplete="off" style="padding-left:34px;width:100%" />
+            </div>
+          </div>
+          <div id="searchResults" class="survey-grid"></div>
+          <div class="notice"><i class="fa-solid fa-circle-info"></i> ค้นหาชื่อไม่พบ? คุณสามารถเพิ่มข้อมูลตนเองได้ทันที โดยข้อมูลจะถูกส่งให้ผู้ดูแลระบบตรวจสอบ</div>
+          <button class="btn outline full" style="margin-top:10px" onclick="showRegister()"><i class="fa-solid fa-user-plus"></i> เพิ่มชื่อของฉัน</button>
+        </div>
+
+        <button type="button" class="btn outline full login-toggle" id="adminToggleBtn" onclick="toggleLoginPanel('admin')" style="margin-top:10px">
+          <i class="fa-solid fa-user-shield"></i> เข้าสู่ระบบผู้ดูแล
+          <i class="fa-solid fa-chevron-down toggle-caret"></i>
+        </button>
+        <div class="login-panel" id="adminLoginPanel">
+          <div class="field">
+            <label>รหัสผ่านผู้ดูแล</label>
+            <input id="adminPass" type="password" autocomplete="current-password" placeholder="กรอกรหัสผ่าน" onkeydown="if(event.key==='Enter')verifyAdmin()">
+          </div>
+          <button class="btn full" onclick="verifyAdmin()"><i class="fa-solid fa-key"></i> เข้าสู่ระบบ</button>
+        </div>
       </aside>
     </div>
   `);
+}
+
+function toggleLoginPanel(kind) {
+  const panels = { staff: document.querySelector('#staffLoginPanel'), admin: document.querySelector('#adminLoginPanel') };
+  const buttons = { staff: document.querySelector('#staffToggleBtn'), admin: document.querySelector('#adminToggleBtn') };
+  if (!panels[kind]) return;
+  const willOpen = !panels[kind].classList.contains('open');
+
+  Object.keys(panels).forEach(k => {
+    panels[k].classList.remove('open');
+    buttons[k].classList.remove('active');
+  });
+
+  if (willOpen) {
+    panels[kind].classList.add('open');
+    buttons[kind].classList.add('active');
+    const focusId = kind === 'staff' ? '#userSearch' : '#adminPass';
+    setTimeout(() => document.querySelector(focusId)?.focus(), 300);
+  }
 }
 
 // ----------------------------------------------------
