@@ -368,18 +368,18 @@ async function homeSearchUsers() {
     result = users.filter(u => u.name.toLowerCase().includes(q));
   }
   lastSearchResults = result;
-  container.innerHTML = result.map(u => \`
+  container.innerHTML = result.map(u => `
     <div class="survey-card" style="padding:10px 14px">
       <div class="survey-main">
-        <strong style="font-size:14px">\${esc(u.name)}</strong>
+        <strong style="font-size:14px">${esc(u.name)}</strong>
         <div class="survey-meta" style="font-size:12px">
-          <span class="badge-level">\${esc(roles[u.role] || roles.NURSE)}</span>
-          <span><i class="fa-solid fa-hospital-user"></i> \${esc(u.department)}</span>
+          <span class="badge-level">${esc(roles[u.role] || roles.NURSE)}</span>
+          <span><i class="fa-solid fa-hospital-user"></i> ${esc(u.department)}</span>
         </div>
       </div>
-      <button class="btn small" onclick="enterUser('\${u.id}')"><i class="fa-solid fa-right-to-bracket"></i> \u0e40\u0e02\u0e49\u0e32\u0e23\u0e30\u0e1a\u0e1a</button>
+      <button class="btn small" onclick="enterUser('${u.id}')"><i class="fa-solid fa-right-to-bracket"></i> \u0e40\u0e02\u0e49\u0e32\u0e23\u0e30\u0e1a\u0e1a</button>
     </div>
-  \`).join('') || '<p class="muted" style="text-align:center;padding:12px;font-size:13px">\u0e44\u0e21\u0e48\u0e1e\u0e1a\u0e23\u0e32\u0e22\u0e0a\u0e37\u0e48\u0e2d\u0e17\u0e35\u0e48\u0e04\u0e49\u0e19\u0e2b\u0e32</p>';
+  `).join('') || '<p class="muted" style="text-align:center;padding:12px;font-size:13px">\u0e44\u0e21\u0e48\u0e1e\u0e1a\u0e23\u0e32\u0e22\u0e0a\u0e37\u0e48\u0e2d\u0e17\u0e35\u0e48\u0e04\u0e49\u0e19\u0e2b\u0e32</p>';
 }
 
 // ----------------------------------------------------
