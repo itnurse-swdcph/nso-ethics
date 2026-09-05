@@ -43,7 +43,7 @@ let state = {
   currentPage: detectPage(),
   user: JSON.parse(localStorage.getItem('np_session') || 'null'),
   admin: sessionStorage.getItem('np_admin') === 'yes',
-  activePeriod: { id: 'p1', name: 'รอบที่ 1/2569 (มกราคม - มิถุนายน 2569)' },
+  activePeriod: { id: 'p1', name: 'ประจำปี 2569' },
   
   // Dashboard state
   dashboardData: null,
@@ -291,43 +291,95 @@ function shell(content) {
 // 1. HOME PAGE (index.html)
 // ----------------------------------------------------
 function renderHome() {
+  if (state.user) {
+    navTo('dashboard.html');
+    return;
+  }
   app.innerHTML = shell(`
     <div class="container hero">
       <section>
-        <div class="eyebrow"><i class="fa-solid fa-hospital"></i> กลุ่มการพยาบาล · โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
-        <h1>ระบบประเมินพฤติกรรม<br>จริยธรรมวิชาชีพของพยาบาล</h1>
-        <p class="lead">ระบบประเมินพฤติกรรมจริยธรรมวิชาชีพแบบหลายระดับ (Multi-level Nursing Professional Ethics Assessment) เชื่อมโยงการประเมินตนเอง (Self Assessment) และการประเมินโดยหัวหน้างาน (Other Assessment) ตามโครงสร้างสายบังคับบัญชา</p>
-        <div class="inline-actions">
-          <a href="login.html" class="btn" style="text-decoration:none"><i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบเพื่อทำการประเมิน</a>
-          <a href="admin.html" class="btn outline" style="text-decoration:none"><i class="fa-solid fa-user-shield"></i> สำหรับผู้ดูแลระบบ / ผู้บริหาร</a>
-        </div>
-      </section>
-      <aside class="hero-card">
-        <h2>สายการประเมินหลายระดับ</h2>
-        <div class="feature">
+        <div class="eyebrow"><i class="fa-solid fa-hospital"></i> \u0e01\u0e25\u0e38\u0e48\u0e21\u0e01\u0e32\u0e23\u0e1e\u0e22\u0e32\u0e1a\u0e32\u0e25 \u00b7 \u0e42\u0e23\u0e07\u0e1e\u0e22\u0e32\u0e1a\u0e32\u0e25\u0e2a\u0e21\u0e40\u0e14\u0e47\u0e08\u0e1e\u0e23\u0e30\u0e22\u0e38\u0e1e\u0e23\u0e32\u0e0a\u0e2a\u0e27\u0e48\u0e32\u0e07\u0e41\u0e14\u0e19\u0e14\u0e34\u0e19</div>
+        <h1>\u0e23\u0e30\u0e1a\u0e1a\u0e1b\u0e23\u0e30\u0e40\u0e21\u0e34\u0e19\u0e1e\u0e24\u0e15\u0e34\u0e01\u0e23\u0e23\u0e21<br>\u0e08\u0e23\u0e34\u0e22\u0e18\u0e23\u0e23\u0e21\u0e27\u0e34\u0e0a\u0e32\u0e0a\u0e35\u0e1e\u0e02\u0e2d\u0e07\u0e1e\u0e22\u0e32\u0e1a\u0e32\u0e25</h1>
+        <p class="lead">\u0e23\u0e30\u0e1a\u0e1a\u0e1b\u0e23\u0e30\u0e40\u0e21\u0e34\u0e19\u0e1e\u0e24\u0e15\u0e34\u0e01\u0e23\u0e23\u0e21\u0e08\u0e23\u0e34\u0e22\u0e18\u0e23\u0e23\u0e21\u0e27\u0e34\u0e0a\u0e32\u0e0a\u0e35\u0e1e\u0e41\u0e1a\u0e1a\u0e2b\u0e25\u0e32\u0e23\u0e30\u0e14\u0e31\u0e1a (Multi-level Nursing Professional Ethics Assessment) \u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e42\u0e22\u0e07\u0e01\u0e32\u0e23\u0e1b\u0e23\u0e30\u0e40\u0e21\u0e34\u0e19\u0e15\u0e19\u0e40\u0e2d\u0e07 (Self Assessment) \u0e41\u0e25\u0e30\u0e01\u0e32\u0e23\u0e1b\u0e23\u0e30\u0e40\u0e21\u0e34\u0e19\u0e42\u0e14\u0e22\u0e2b\u0e31\u0e27\u0e2b\u0e19\u0e49\u0e32\u0e07\u0e32\u0e19 (Other Assessment) \u0e15\u0e32\u0e21\u0e42\u0e04\u0e23\u0e07\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e2a\u0e32\u0e22\u0e1a\u0e31\u0e07\u0e04\u0e31\u0e1a\u0e1a\u0e31\u0e0d\u0e0a\u0e32</p>
+        <div class="feature" style="margin-top:20px">
           <div class="feature-icon"><i class="fa-solid fa-user-nurse"></i></div>
           <div>
-            <strong>พยาบาลประจำการ</strong><br>
-            <span class="muted">ประเมินตนเอง (Self) และรับการประเมินจากหัวหน้างาน (Other)</span>
+            <strong>\u0e1e\u0e22\u0e32\u0e1a\u0e32\u0e25\u0e1b\u0e23\u0e30\u0e08\u0e33\u0e01\u0e32\u0e23</strong><br>
+            <span class="muted">\u0e1b\u0e23\u0e30\u0e40\u0e21\u0e34\u0e19\u0e15\u0e19\u0e40\u0e2d\u0e07 (Self) \u0e41\u0e25\u0e30\u0e23\u0e31\u0e1a\u0e01\u0e32\u0e23\u0e1b\u0e23\u0e30\u0e40\u0e21\u0e34\u0e19\u0e08\u0e32\u0e01\u0e2b\u0e31\u0e27\u0e2b\u0e19\u0e49\u0e32\u0e07\u0e32\u0e19 (Other)</span>
           </div>
         </div>
         <div class="feature">
           <div class="feature-icon"><i class="fa-solid fa-clipboard-user"></i></div>
           <div>
-            <strong>หัวหน้างาน / หัวหน้าหอผู้ป่วย</strong><br>
-            <span class="muted">ประเมินพยาบาลในหน่วยงาน และทำแบบประเมินตนเองส่งหัวหน้ากลุ่มงาน</span>
+            <strong>\u0e2b\u0e31\u0e27\u0e2b\u0e19\u0e49\u0e32\u0e07\u0e32\u0e19 / \u0e2b\u0e31\u0e27\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e2d\u0e1c\u0e39\u0e49\u0e1b\u0e48\u0e27\u0e22</strong><br>
+            <span class="muted">\u0e1b\u0e23\u0e30\u0e40\u0e21\u0e34\u0e19\u0e1e\u0e22\u0e32\u0e1a\u0e32\u0e25\u0e43\u0e19\u0e2b\u0e19\u0e48\u0e27\u0e22\u0e07\u0e32\u0e19 \u0e41\u0e25\u0e30\u0e17\u0e33\u0e41\u0e1a\u0e1a\u0e1b\u0e23\u0e30\u0e40\u0e21\u0e34\u0e19\u0e15\u0e19\u0e40\u0e2d\u0e07\u0e2a\u0e48\u0e07\u0e2b\u0e31\u0e27\u0e2b\u0e19\u0e49\u0e32\u0e01\u0e25\u0e38\u0e48\u0e21\u0e07\u0e32\u0e19</span>
           </div>
         </div>
         <div class="feature">
           <div class="feature-icon"><i class="fa-solid fa-hospital-user"></i></div>
           <div>
-            <strong>หัวหน้ากลุ่มงาน & หัวหน้าพยาบาล</strong><br>
-            <span class="muted">กำกับดูแลและประเมินผลผู้ใต้บังคับบัญชา พร้อมรายงานภาพรวมโรงพยาบาล</span>
+            <strong>\u0e2b\u0e31\u0e27\u0e2b\u0e19\u0e49\u0e32\u0e01\u0e25\u0e38\u0e48\u0e21\u0e07\u0e32\u0e19 &amp; \u0e2b\u0e31\u0e27\u0e2b\u0e19\u0e49\u0e32\u0e1e\u0e22\u0e32\u0e1a\u0e32\u0e25</strong><br>
+            <span class="muted">\u0e01\u0e33\u0e01\u0e31\u0e1a\u0e14\u0e39\u0e41\u0e25\u0e41\u0e25\u0e30\u0e1b\u0e23\u0e30\u0e40\u0e21\u0e34\u0e19\u0e1c\u0e25\u0e1c\u0e39\u0e49\u0e43\u0e15\u0e49\u0e1a\u0e31\u0e07\u0e04\u0e31\u0e1a\u0e1a\u0e31\u0e0d\u0e0a\u0e32 \u0e1e\u0e23\u0e49\u0e2d\u0e21\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21</span>
           </div>
         </div>
+        <div style="margin-top: 24px">
+          <a href="admin.html" class="btn outline" style="text-decoration:none"><i class="fa-solid fa-user-shield"></i> \u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e1c\u0e39\u0e49\u0e14\u0e39\u0e41\u0e25\u0e23\u0e30\u0e1a\u0e1a / \u0e1c\u0e39\u0e49\u0e1a\u0e23\u0e34\u0e2b\u0e32\u0e23</a>
+        </div>
+      </section>
+      <aside class="hero-card" style="padding: 24px;">
+        <div class="eyebrow" style="color:var(--brand)"><i class="fa-solid fa-right-to-bracket"></i> \u0e40\u0e02\u0e49\u0e32\u0e2a\u0e39\u0e48\u0e23\u0e30\u0e1a\u0e1a</div>
+        <h2 style="margin: 8px 0 4px">\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e0a\u0e37\u0e48\u0e2d\u0e1a\u0e38\u0e04\u0e25\u0e32\u0e01\u0e23</h2>
+        <p class="muted" style="margin-bottom: 16px; font-size: 14px;">\u0e1e\u0e34\u0e21\u0e1e\u0e4c\u0e0a\u0e37\u0e48\u0e2d\u0e2b\u0e23\u0e37\u0e2d\u0e19\u0e32\u0e21\u0e2a\u0e01\u0e38\u0e25\u0e02\u0e2d\u0e07\u0e17\u0e48\u0e32\u0e19\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e43\u0e19\u0e10\u0e32\u0e19\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25</p>
+        <div class="field" style="margin-bottom: 12px;">
+          <div style="position:relative">
+            <i class="fa-solid fa-magnifying-glass search-icon" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted)"></i>
+            <input id="homeSearch" oninput="homeSearchUsers()" placeholder="\u0e1e\u0e34\u0e21\u0e1e\u0e4c\u0e0a\u0e37\u0e48\u0e2d \u0e40\u0e0a\u0e48\u0e19 \u0e2d\u0e25\u0e34\u0e29\u0e32, \u0e01\u0e19\u0e01\u0e40\u0e1e\u0e0a\u0e23..." autocomplete="off" style="padding: 10px 12px 10px 36px; width: 100%; border-radius: 8px; border: 1px solid var(--line);" />
+          </div>
+        </div>
+        <div id="homeSearchResults" class="survey-grid" style="max-height: 250px; overflow-y: auto;"></div>
+        <div class="notice" style="margin-top: 12px; font-size: 13px; padding: 10px;"><i class="fa-solid fa-circle-info"></i> \u0e2b\u0e32\u0e01\u0e44\u0e21\u0e48\u0e1e\u0e1a\u0e23\u0e32\u0e22\u0e0a\u0e37\u0e48\u0e2d \u0e17\u0e48\u0e32\u0e19\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e25\u0e07\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e0a\u0e37\u0e48\u0e2d\u0e15\u0e19\u0e40\u0e2d\u0e07\u0e44\u0e14\u0e49\u0e17\u0e31\u0e19\u0e17\u0e35</div>
+        <button class="btn full" style="margin-top: 12px;" onclick="showRegister()"><i class="fa-solid fa-user-plus"></i> \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e0a\u0e37\u0e48\u0e2d\u0e02\u0e2d\u0e07\u0e09\u0e31\u0e19</button>
       </aside>
     </div>
   `);
+}
+
+async function homeSearchUsers() {
+  let q = document.querySelector('#homeSearch')?.value?.toLowerCase().trim() || '';
+  const container = document.querySelector('#homeSearchResults');
+  if (!container) return;
+  if (q.length < 2) {
+    container.innerHTML = '';
+    return;
+  }
+  let result = [];
+  try {
+    if (cloudEnabled()) {
+      const cloudData = await api('search_profiles', { query: q });
+      result = cloudData.map(u => ({
+        id: u.id, name: u.full_name, position: u.position, level: u.level,
+        role: u.role || (u.full_name?.includes('\u0e25\u0e32\u0e27\u0e31\u0e13\u0e22\u0e4c') ? 'HEAD_NURSE' : u.level === 'head_of_group' ? 'GROUP_HEAD' : u.level === 'head_of_unit' ? 'UNIT_HEAD' : 'NURSE'),
+        department: u.departments?.name || '\u0e01\u0e25\u0e38\u0e48\u0e21\u0e01\u0e32\u0e23\u0e1e\u0e22\u0e32\u0e1a\u0e32\u0e25'
+      }));
+    } else {
+      result = users.filter(u => u.name.toLowerCase().includes(q));
+    }
+  } catch (e) {
+    result = users.filter(u => u.name.toLowerCase().includes(q));
+  }
+  lastSearchResults = result;
+  container.innerHTML = result.map(u => \`
+    <div class="survey-card" style="padding:10px 14px">
+      <div class="survey-main">
+        <strong style="font-size:14px">\${esc(u.name)}</strong>
+        <div class="survey-meta" style="font-size:12px">
+          <span class="badge-level">\${esc(roles[u.role] || roles.NURSE)}</span>
+          <span><i class="fa-solid fa-hospital-user"></i> \${esc(u.department)}</span>
+        </div>
+      </div>
+      <button class="btn small" onclick="enterUser('\${u.id}')"><i class="fa-solid fa-right-to-bracket"></i> \u0e40\u0e02\u0e49\u0e32\u0e23\u0e30\u0e1a\u0e1a</button>
+    </div>
+  \`).join('') || '<p class="muted" style="text-align:center;padding:12px;font-size:13px">\u0e44\u0e21\u0e48\u0e1e\u0e1a\u0e23\u0e32\u0e22\u0e0a\u0e37\u0e48\u0e2d\u0e17\u0e35\u0e48\u0e04\u0e49\u0e19\u0e2b\u0e32</p>';
 }
 
 // ----------------------------------------------------
@@ -745,11 +797,28 @@ function getLocalDashboardFallback() {
       }
     ];
     inspectTasks = [...evaluateTasks];
+  } else if (role === 'UNIT_HEAD') {
+    if (uName.includes('เสาวลักษณ์')) {
+      managedDepts = [
+        { id: 'd104', name: 'งานการพยาบาลผู้ป่วยในพิเศษปาริฉัตร' },
+        { id: 'd105', name: 'งานการพยาบาลผู้ป่วยในสงฆ์อาพาธ' }
+      ];
+      evaluateTasks = [
+        { id: 't1', target_user_id: 'n_p1', status: 'NOT_STARTED', target_self_status: 'COMPLETED', target_self_done: true, target: { id: 'n_p1', full_name: 'นางสาวพิมพ์ใจ งามเลิศ', position: 'พยาบาลวิชาชีพปฏิบัติการ', role: 'NURSE', departments: { name: 'งานการพยาบาลผู้ป่วยในพิเศษปาริฉัตร' } } },
+        { id: 't2', target_user_id: 'n_m1', status: 'COMPLETED', target_self_status: 'COMPLETED', target_self_done: true, target: { id: 'n_m1', full_name: 'นางสาวบุญรอด บุญมี', position: 'พยาบาลวิชาชีพชำนาญการ', role: 'NURSE', departments: { name: 'งานการพยาบาลผู้ป่วยในสงฆ์อาพาธ' } } }
+      ];
+      inspectTasks = [...evaluateTasks];
+    } else {
+      evaluateTasks = [
+        { id: 't1', target_user_id: 'n_test', status: 'NOT_STARTED', target_self_status: 'COMPLETED', target_self_done: true, target: { id: 'n_test', full_name: 'พยาบาลทดสอบ 1', position: 'พยาบาลวิชาชีพปฏิบัติการ', role: 'NURSE', departments: { name: uDept } } }
+      ];
+      inspectTasks = [...evaluateTasks];
+    }
   }
 
   return {
     user: state.user,
-    activePeriod: { id: 'p1', name: 'รอบที่ 1/2569 (มกราคม - มิถุนายน 2569)' },
+    activePeriod: { id: 'p1', name: 'ประจำปี 2569' },
     selfAssignment: role === 'HEAD_NURSE' ? null : {
       id: 'mock_self_1',
       assessment_type: 'SELF',
@@ -1477,7 +1546,7 @@ function getMockIndividualReport(targetUserId) {
       role: u.role || 'NURSE',
       departments: { name: u.department || 'งานการพยาบาลผู้ป่วยนอก' }
     },
-    period: { name: 'รอบที่ 1/2569 (มกราคม - มิถุนายน 2569)' },
+    period: { name: 'ประจำปี 2569' },
     selfResponse: {
       total_score: 272,
       average_score: 4.25,
@@ -1993,7 +2062,7 @@ async function fetchAdminPeriods() {
     } else {
       state.adminPeriods = [{
         id: 'p1000000-0000-0000-0000-000000000001',
-        name: 'รอบที่ 1/2569 (มกราคม - มิถุนายน 2569)',
+        name: 'ประจำปี 2569',
         start_date: '2026-01-01',
         end_date: '2026-06-30',
         status: 'ACTIVE'
