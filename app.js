@@ -507,26 +507,25 @@ function renderAdminTemplatesTab() {
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
         <div>
           <h3 style="margin-bottom:4px"><i class="fa-solid fa-file-signature"></i> ชุดแบบประเมินจริยธรรมวิชาชีพ</h3>
-          <p class="muted" style="margin:0;font-size:13px">แบบประเมินทั้ง 3 ชุด ใช้สำหรับบุคลากรตามบทบาทหน้าที่ที่กำหนด</p>
+          <p class="muted" style="margin:0;font-size:13px">แบบประเมินทั้ง 2 ชุด ใช้สำหรับบุคลากรตามบทบาทหน้าที่ที่กำหนด</p>
         </div>
-        <button class="btn ghost" onclick="toast('ฟีเจอร์การสร้างชุดแบบประเมินใหม่จะเปิดให้ใช้งานในเร็วๆ นี้')"><i class="fa-solid fa-plus"></i> เพิ่มชุดแบบประเมิน</button>
       </div>
-      <div class="survey-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+      <div class="survey-grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
         <div class="card" style="border-top:4px solid #2563eb;display:flex;flex-direction:column">
           <div class="eyebrow" style="color:#2563eb"><i class="fa-solid fa-user-nurse"></i> ชุดที่ 1 — พยาบาลประจำการ</div>
           <h3 style="margin:8px 0 4px">Clinical Ethics Assessment</h3>
-          <p class="muted">ประเมินพฤติกรรมจริยธรรมทางคลินิก</p>
+          <p class="muted">แบบวัดพฤติกรรมจริยธรรมทางคลินิก</p>
           <div style="margin:10px 0;flex-grow:1">
             <span class="badge done"><i class="fa-solid fa-check"></i> Active</span>
             <span style="margin-left:8px;font-size:13px;color:var(--muted)">จำนวน <strong>${nurseCount}</strong> ข้อคำถาม (QP-NURSE-01 ถึง ${nurseCount})</span>
           </div>
           <p style="font-size:12px;color:var(--muted);margin:0 0 12px">ใช้สำหรับ: พยาบาลประจำการ (NURSE)</p>
-          <button class="btn outline small" style="width:100%" onclick="toast('ฟีเจอร์แก้ไขข้อคำถามจะเปิดให้ใช้งานในเร็วๆ นี้')"><i class="fa-solid fa-pen-to-square"></i> จัดการข้อคำถาม</button>
+          <button class="btn outline small" style="width:100%" onclick="showTemplateQuestionsModal('NURSE')"><i class="fa-solid fa-list-ol"></i> ดูรายละเอียดข้อคำถาม (${nurseCount} ข้อ)</button>
         </div>
         <div class="card" style="border-top:4px solid #7c3aed;display:flex;flex-direction:column">
           <div class="eyebrow" style="color:#7c3aed"><i class="fa-solid fa-user-tie"></i> ชุดที่ 2 — หัวหน้างาน &amp; หัวหน้ากลุ่มงาน</div>
           <h3 style="margin:8px 0 4px">Administrative Ethics Assessment</h3>
-          <p class="muted">ประเมินพฤติกรรมจริยธรรมในการบริหารงาน</p>
+          <p class="muted">แบบวัดพฤติกรรมจริยธรรมในการบริหารงาน</p>
           <div style="margin:10px 0;flex-grow:1">
             <span class="badge done"><i class="fa-solid fa-check"></i> Active</span>
             <span style="margin-left:8px;font-size:13px;color:var(--muted)">จำนวน <strong>${unitHeadCount}</strong> ข้อคำถาม (QP-UNITHEAD-01 ถึง ${unitHeadCount})</span>
@@ -535,40 +534,219 @@ function renderAdminTemplatesTab() {
           <div class="notice" style="margin-top:8px;margin-bottom:12px;font-size:12px;padding:8px 10px;background:#faf5ff;border:1px solid #e9d5ff;color:#6b21a8">
             <i class="fa-solid fa-circle-info"></i> หัวหน้ากลุ่มงานใช้ข้อคำถามชุดเดียวกัน (65 ข้อ) กับหัวหน้างาน ตามนโยบายการประเมิน
           </div>
-          <button class="btn outline small" style="width:100%" onclick="toast('ฟีเจอร์แก้ไขข้อคำถามจะเปิดให้ใช้งานในเร็วๆ นี้')"><i class="fa-solid fa-pen-to-square"></i> จัดการข้อคำถาม</button>
+          <button class="btn outline small" style="width:100%" onclick="showTemplateQuestionsModal('UNIT_HEAD')"><i class="fa-solid fa-list-ol"></i> ดูรายละเอียดข้อคำถาม (${unitHeadCount} ข้อ)</button>
         </div>
       </div>
     </div>
   `;
 }
 
-// ----------------------------------------------------
-// 3. DASHBOARD PAGE (dashboard.html)
-// ----------------------------------------------------
-async function loadDashboardData() {
-  if (!state.user?.id) return;
-  showSkeletonLoading('กำลังโหลดข้อมูลการประเมิน...');
-  try {
-    if (cloudEnabled()) {
-      const res = await api('get_ethics_dashboard', { user_id: state.user.id });
-      state.dashboardData = res;
-      if (res.user?.role) state.user.role = res.user.role;
-      localStorage.setItem('np_session', JSON.stringify(state.user));
-    } else {
-      // Local demo fallback
-      state.dashboardData = getLocalDashboardFallback();
-    }
-  } catch (e) {
-    console.error('loadDashboardData error:', e);
-    state.dashboardData = getLocalDashboardFallback();
-  } finally {
-    hideSkeletonLoading();
-    render();
+function showTemplateQuestionsModal(templateType) {
+  const isNurse = templateType === 'NURSE';
+  const pairs = isNurse ? (ETHICS_QUESTION_BANK.nursePairs || []) : (ETHICS_QUESTION_BANK.unitHeadPairs || []);
+  const title = isNurse 
+    ? 'ชุดที่ 1: แบบวัดพฤติกรรมจริยธรรมทางคลินิก (พยาบาลประจำการ 64 ข้อ)' 
+    : 'ชุดที่ 2: แบบวัดพฤติกรรมจริยธรรมในการบริหารงาน (หัวหน้างาน & หัวหน้ากลุ่มงาน 65 ข้อ)';
+  
+  const content = `
+    <div style="max-width:920px;width:min(920px, 92vw)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+        <div>
+          <span class="badge ${isNurse ? 'info' : 'progressing'}">${isNurse ? 'NURSE' : 'UNIT_HEAD / GROUP_HEAD'}</span>
+          <span class="muted" style="margin-left:8px;font-size:13px">เกณฑ์คะแนนแบบ Likert scale 1 - 5 (น้อยที่สุด ถึง มากที่สุด)</span>
+        </div>
+        <input type="text" id="qSearchInput" placeholder="ค้นหาข้อคำถาม..." style="padding:6px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;width:220px" oninput="filterQuestionsModalTable(this.value)">
+      </div>
+      <div style="max-height:60vh;overflow-y:auto;border:1px solid var(--line);border-radius:10px">
+        <table class="table" style="margin:0;font-size:13px" id="modalQuestionsTable">
+          <thead style="position:sticky;top:0;background:#f8fafc;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.05)">
+            <tr>
+              <th style="width:45px;text-align:center">ข้อที่</th>
+              <th style="width:115px">รหัสคู่คำถาม</th>
+              <th>ข้อคำถามสำหรับผู้รับการประเมิน (Self)</th>
+              <th>ข้อคำถามสำหรับผู้ประเมิน (Other)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pairs.map((p, idx) => `
+              <tr class="q-row">
+                <td style="text-align:center;font-weight:600;color:var(--muted)">${idx + 1}</td>
+                <td><code style="background:#eef2f6;padding:2px 6px;border-radius:4px;font-size:11px">${esc(p.pair_code)}</code></td>
+                <td style="line-height:1.4">${esc(p.self_text)}</td>
+                <td style="line-height:1.4;color:#1e3a8a">${esc(p.other_text)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  modal(title, content, `<button class="btn ghost" onclick="closeModal()">ปิดหน้าต่าง</button>`);
+  const modalElem = document.querySelector('.modal');
+  if (modalElem) {
+    modalElem.style.width = 'min(940px, 95vw)';
+    modalElem.style.maxWidth = '95vw';
   }
+}
+
+function filterQuestionsModalTable(kw) {
+  const query = (kw || '').trim().toLowerCase();
+  const rows = document.querySelectorAll('#modalQuestionsTable tbody tr.q-row');
+  rows.forEach(r => {
+    if (!query) {
+      r.style.display = '';
+    } else {
+      const text = r.textContent.toLowerCase();
+      r.style.display = text.includes(query) ? '' : 'none';
+    }
+  });
 }
 
 function getLocalDashboardFallback() {
   const role = state.user?.role || 'NURSE';
+  const uName = state.user?.name || 'ผู้ใช้งาน';
+  const uDept = state.user?.department || 'งานการพยาบาล';
+
+  let evaluateTasks = [];
+  let inspectTasks = [];
+  let managedDepts = [{ id: 'd1', name: uDept }];
+
+  if (role === 'GROUP_HEAD') {
+    managedDepts = [
+      { id: 'd101', name: 'งานการพยาบาลผู้ป่วยในหลอดเลือดสมอง' },
+      { id: 'd102', name: 'งานการพยาบาลผู้ป่วยในอายุรกรรมชาย' },
+      { id: 'd103', name: 'งานการพยาบาลผู้ป่วยในอายุรกรรมหญิง' },
+      { id: 'd104', name: 'งานการพยาบาลผู้ป่วยในพิเศษปาริฉัตร' },
+      { id: 'd105', name: 'งานการพยาบาลผู้ป่วยในสงฆ์อาพาธ' }
+    ];
+
+    // Evaluate tasks: ONLY the Unit Heads of those 5 units!
+    evaluateTasks = [
+      {
+        id: 'eval_uh_1',
+        target_user_id: 'uh_stroke',
+        status: 'NOT_STARTED',
+        target_self_status: 'COMPLETED',
+        target_self_done: true,
+        target: { id: 'uh_stroke', full_name: 'นางปราณี มีสุข', position: 'พยาบาลวิชาชีพชำนาญการ', role: 'UNIT_HEAD', departments: { name: 'งานการพยาบาลผู้ป่วยในหลอดเลือดสมอง' } }
+      },
+      {
+        id: 'eval_uh_2',
+        target_user_id: 'uh_med_m',
+        status: 'COMPLETED',
+        target_self_status: 'COMPLETED',
+        target_self_done: true,
+        target: { id: 'uh_med_m', full_name: 'นายสมบัติ รักษาดี', position: 'พยาบาลวิชาชีพชำนาญการ', role: 'UNIT_HEAD', departments: { name: 'งานการพยาบาลผู้ป่วยในอายุรกรรมชาย' } }
+      },
+      {
+        id: 'eval_uh_3',
+        target_user_id: 'uh_med_f',
+        status: 'NOT_STARTED',
+        target_self_status: 'NOT_STARTED',
+        target_self_done: false,
+        target: { id: 'uh_med_f', full_name: 'นางดวงพร อุ่นใจ', position: 'พยาบาลวิชาชีพชำนาญการ', role: 'UNIT_HEAD', departments: { name: 'งานการพยาบาลผู้ป่วยในอายุรกรรมหญิง' } }
+      },
+      {
+        id: 'eval_uh_4',
+        target_user_id: 'uh_pari',
+        status: 'NOT_STARTED',
+        target_self_status: 'COMPLETED',
+        target_self_done: true,
+        target: { id: 'uh_pari', full_name: 'นางเสาวลักษณ์ สารีคำ', position: 'พยาบาลวิชาชีพชำนาญการพิเศษ', role: 'UNIT_HEAD', departments: { name: 'งานการพยาบาลผู้ป่วยในพิเศษปาริฉัตร' } }
+      },
+      {
+        id: 'eval_uh_5',
+        target_user_id: 'uh_monk',
+        status: 'NOT_STARTED',
+        target_self_status: 'COMPLETED',
+        target_self_done: true,
+        target: { id: 'uh_monk', full_name: 'นางเสาวลักษณ์ สารีคำ', position: 'พยาบาลวิชาชีพชำนาญการพิเศษ', role: 'UNIT_HEAD', departments: { name: 'งานการพยาบาลผู้ป่วยในสงฆ์อาพาธ' } }
+      }
+    ];
+
+    // Inspect tasks: All unit heads AND regular nurses across these units
+    inspectTasks = [
+      ...evaluateTasks,
+      {
+        id: 'nurse_s1',
+        target_user_id: 'n_s1',
+        status: 'COMPLETED',
+        target_self_status: 'COMPLETED',
+        target_self_done: true,
+        target: { id: 'n_s1', full_name: 'นางสาวกัลยา สุขใจ', position: 'พยาบาลวิชาชีพปฏิบัติการ', role: 'NURSE', departments: { name: 'งานการพยาบาลผู้ป่วยในหลอดเลือดสมอง' } }
+      },
+      {
+        id: 'nurse_s2',
+        target_user_id: 'n_s2',
+        status: 'NOT_STARTED',
+        target_self_status: 'COMPLETED',
+        target_self_done: true,
+        target: { id: 'n_s2', full_name: 'นายธีรศักดิ์ ใจดี', position: 'พยาบาลวิชาชีพปฏิบัติการ', role: 'NURSE', departments: { name: 'งานการพยาบาลผู้ป่วยในหลอดเลือดสมอง' } }
+      },
+      {
+        id: 'nurse_m1',
+        target_user_id: 'n_m1',
+        status: 'COMPLETED',
+        target_self_status: 'COMPLETED',
+        target_self_done: true,
+        target: { id: 'n_m1', full_name: 'นางสาวศศิธร มงคล', position: 'พยาบาลวิชาชีพชำนาญการ', role: 'NURSE', departments: { name: 'งานการพยาบาลผู้ป่วยในอายุรกรรมชาย' } }
+      },
+      {
+        id: 'nurse_f1',
+        target_user_id: 'n_f1',
+        status: 'NOT_STARTED',
+        target_self_status: 'NOT_STARTED',
+        target_self_done: false,
+        target: { id: 'n_f1', full_name: 'นางสาวพนิดา อรุณ', position: 'พยาบาลวิชาชีพปฏิบัติการ', role: 'NURSE', departments: { name: 'งานการพยาบาลผู้ป่วยในอายุรกรรมหญิง' } }
+      },
+      {
+        id: 'nurse_p1',
+        target_user_id: 'n_p1',
+        status: 'NOT_STARTED',
+        target_self_status: 'COMPLETED',
+        target_self_done: true,
+        target: { id: 'n_p1', full_name: 'นางสาวพิมพ์ใจ งามเลิศ', position: 'พยาบาลวิชาชีพปฏิบัติการ', role: 'NURSE', departments: { name: 'งานการพยาบาลผู้ป่วยในพิเศษปาริฉัตร' } }
+      },
+      {
+        id: 'nurse_monk1',
+        target_user_id: 'n_monk1',
+        status: 'COMPLETED',
+        target_self_status: 'COMPLETED',
+        target_self_done: true,
+        target: { id: 'n_monk1', full_name: 'นางสาวบุญรอด บุญมี', position: 'พยาบาลวิชาชีพชำนาญการ', role: 'NURSE', departments: { name: 'งานการพยาบาลผู้ป่วยในสงฆ์อาพาธ' } }
+      }
+    ];
+  } else if (role === 'HEAD_NURSE') {
+    // Head Nurse evaluates ALL Group Heads AND Unit Heads of units without Group Head (e.g. จิตเวช, ห้องผ่าตัด)
+    evaluateTasks = [
+      {
+        id: 'hn_gh_1',
+        target_user_id: 'gh_med',
+        status: 'NOT_STARTED',
+        target_self_status: 'COMPLETED',
+        target_self_done: true,
+        target: { id: 'gh_med', full_name: 'นางต้องจิตร ลันโคตร', position: 'พยาบาลวิชาชีพชำนาญการพิเศษ', role: 'GROUP_HEAD', departments: { name: 'กลุ่มงานการพยาบาลผู้ป่วยนอก' } }
+      },
+      {
+        id: 'hn_uh_psych',
+        target_user_id: 'uh_psych',
+        status: 'NOT_STARTED',
+        target_self_status: 'COMPLETED',
+        target_self_done: true,
+        target: { id: 'uh_psych', full_name: 'นางจิตรา มั่นคง', position: 'พยาบาลวิชาชีพชำนาญการพิเศษ', role: 'UNIT_HEAD', departments: { name: 'งานการพยาบาลผู้ป่วยจิตเวช' } }
+      },
+      {
+        id: 'hn_uh_or',
+        target_user_id: 'uh_or',
+        status: 'NOT_STARTED',
+        target_self_status: 'COMPLETED',
+        target_self_done: true,
+        target: { id: 'uh_or', full_name: 'นางมาลี คมคาย', position: 'พยาบาลวิชาชีพชำนาญการพิเศษ', role: 'UNIT_HEAD', departments: { name: 'งานการพยาบาลผู้ป่วยห้องผ่าตัด' } }
+      }
+    ];
+    inspectTasks = [...evaluateTasks];
+  }
+
   return {
     user: state.user,
     activePeriod: { id: 'p1', name: 'รอบที่ 1/2569 (มกราคม - มิถุนายน 2569)' },
@@ -583,8 +761,9 @@ function getLocalDashboardFallback() {
       }
     },
     otherAssignmentOnMe: null,
-    evaluateTasks: [],
-    managedDepartments: [{ id: 'd1', name: state.user?.department || 'งานการพยาบาล' }]
+    evaluateTasks,
+    inspectTasks,
+    managedDepartments: managedDepts
   };
 }
 
@@ -878,65 +1057,140 @@ function renderHeadNurseDashboard() {
   return renderExecutiveReportsView();
 }
 
-// SubView: Inspect Unit Assessment Status (for GROUP_HEAD and UNIT_HEAD)
+// SubView: Inspect Unit Assessment Status (for GROUP_HEAD, UNIT_HEAD, and HEAD_NURSE)
 function renderInspectUnitsView() {
   const role = state.user?.role || 'UNIT_HEAD';
-  const tasks = state.dashboardData?.evaluateTasks || [];
-  const depts = state.dashboardData?.managedDepartments || [];
-  const title = role === 'GROUP_HEAD' ? 'ตรวจสอบสถานะการประเมินของหน่วยงานในกลุ่มงาน' : 'ตรวจสอบสถานะการประเมินของบุคลากรในหน่วยงาน';
+  const allTasks = (state.dashboardData?.inspectTasks && state.dashboardData.inspectTasks.length > 0)
+    ? state.dashboardData.inspectTasks
+    : (state.dashboardData?.evaluateTasks || []);
 
-  const taskRows = tasks.map((t, idx) => {
-    const selfDone = t.target_self_status === 'COMPLETED' || t.target_self_done;
-    const otherDone = t.status === 'COMPLETED';
-    let statusLabel = '';
-    if (otherDone) {
-      statusLabel = '<span class="badge done"><i class="fa-solid fa-check-circle"></i> เสร็จสิ้น</span>';
-    } else if (selfDone) {
-      statusLabel = '<span class="badge pending" style="background:#fef3c7;color:#92400e"><i class="fa-solid fa-hourglass-half"></i> รอหัวหน้างานประเมิน</span>';
-    } else {
-      statusLabel = '<span class="badge closed"><i class="fa-solid fa-circle-xmark"></i> ยังไม่ประเมิน</span>';
-    }
+  const title = role === 'GROUP_HEAD' 
+    ? 'ตรวจสอบสถานะการประเมินของบุคลากรในกลุ่มงาน (แยกตามหน่วยงาน)' 
+    : (role === 'HEAD_NURSE' ? 'ตรวจสอบสถานะการประเมินของบุคลากรทั้งหมด (แยกตามหน่วยงาน)' : 'ตรวจสอบสถานะการประเมินของบุคลากรในหน่วยงาน');
+
+  if (!allTasks.length) {
     return `
-      <tr>
-        <td style="text-align:center">${idx + 1}</td>
-        <td><strong>${esc(t.target?.full_name || 'ไม่ระบุชื่อ')}</strong></td>
-        <td>${esc(t.target?.position || 'พยาบาลวิชาชีพ')}</td>
-        <td><i class="fa-solid fa-hospital-user text-muted"></i> ${esc(t.target?.departments?.name || 'กลุ่มการพยาบาล')}</td>
-        <td style="text-align:center">${statusLabel}</td>
-        <td style="text-align:center">
-          ${otherDone || selfDone ? `<button class="btn ghost small" onclick="viewMyReport('${t.target_user_id}')"><i class="fa-solid fa-chart-line"></i> ดูผล</button>` : '<span class="muted" style="font-size:12px">—</span>'}
-        </td>
-      </tr>
+      <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">
+        <button class="btn ghost small" onclick="switchDashboardTab('my_assessment')"><i class="fa-solid fa-arrow-left"></i> กลับ</button>
+        <h3 style="margin:0"><i class="fa-solid fa-magnifying-glass-chart"></i> ${esc(title)}</h3>
+      </div>
+      <div class="card" style="text-align:center;padding:40px;color:var(--muted)">
+        <i class="fa-solid fa-folder-open" style="font-size:36px;display:block;margin-bottom:12px"></i>
+        ไม่มีข้อมูลบุคลากรในสังกัดที่สามารถตรวจสอบได้
+      </div>
     `;
+  }
+
+  // Group all tasks by department name
+  const groupedDepts = {};
+  allTasks.forEach(t => {
+    const deptName = t.target?.departments?.name || t.target?.department || 'ไม่ระบุหน่วยงาน';
+    if (!groupedDepts[deptName]) {
+      groupedDepts[deptName] = [];
+    }
+    groupedDepts[deptName].push(t);
   });
 
+  const deptNames = Object.keys(groupedDepts).sort((a, b) => a.localeCompare(b, 'th'));
+
   return `
-    <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">
-      <button class="btn ghost small" onclick="switchDashboardTab('my_assessment')"><i class="fa-solid fa-arrow-left"></i> กลับ</button>
-      <h3 style="margin:0"><i class="fa-solid fa-magnifying-glass-chart"></i> ${esc(title)}</h3>
+    <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="btn ghost small" onclick="switchDashboardTab('my_assessment')"><i class="fa-solid fa-arrow-left"></i> กลับ</button>
+        <h3 style="margin:0"><i class="fa-solid fa-magnifying-glass-chart"></i> ${esc(title)}</h3>
+      </div>
+      <div style="font-size:13px;color:var(--muted)">
+        รวมทั้งหมด <strong>${deptNames.length}</strong> หน่วยงาน | บุคลากร <strong>${allTasks.length}</strong> คน
+      </div>
     </div>
-    <div class="table-wrap">
-      <table class="table">
-        <thead>
-          <tr>
-            <th style="width:50px">ลำดับ</th>
-            <th>ชื่อผู้ถูกประเมิน</th>
-            <th>ตำแหน่ง</th>
-            <th>หน่วยงาน</th>
-            <th style="text-align:center">สถานะการประเมิน</th>
-            <th style="text-align:center">รายงาน</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${taskRows.length ? taskRows.join('') : `
-            <tr><td colspan="6" style="text-align:center;padding:30px" class="muted">
-              <i class="fa-solid fa-folder-open" style="font-size:32px;display:block;margin-bottom:8px"></i>
-              ไม่มีข้อมูลบุคลากรในสังกัด
-            </td></tr>
-          `}
-        </tbody>
-      </table>
-    </div>
+
+    ${deptNames.map(deptName => {
+      const deptTasks = groupedDepts[deptName];
+      // Sort tasks: UNIT_HEAD first, then NURSE sorted by name
+      deptTasks.sort((a, b) => {
+        if (a.target?.role === 'UNIT_HEAD' && b.target?.role !== 'UNIT_HEAD') return -1;
+        if (b.target?.role === 'UNIT_HEAD' && a.target?.role !== 'UNIT_HEAD') return 1;
+        return (a.target?.full_name || '').localeCompare(b.target?.full_name || '', 'th');
+      });
+
+      const completedCount = deptTasks.filter(t => t.status === 'COMPLETED').length;
+      const selfDoneCount = deptTasks.filter(t => t.target_self_status === 'COMPLETED' || t.target_self_done).length;
+
+      return `
+        <div class="card" style="margin-bottom:24px;padding:0;overflow:hidden;border-top:3px solid #087e8b">
+          <div style="padding:14px 20px;background:#f8fafc;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="badge" style="background:#e0f2fe;color:#0369a1;font-size:13px;padding:5px 10px"><i class="fa-solid fa-hospital-user"></i> ${esc(deptName)}</span>
+              <span class="muted" style="font-size:13px">บุคลากร ${deptTasks.length} คน</span>
+            </div>
+            <div style="display:flex;gap:10px;font-size:12px">
+              <span class="badge done"><i class="fa-solid fa-check"></i> Self เสร็จ: ${selfDoneCount}/${deptTasks.length}</span>
+              <span class="badge ${completedCount === deptTasks.length ? 'done' : 'pending'}"><i class="fa-solid fa-user-check"></i> หัวหน้าประเมิน: ${completedCount}/${deptTasks.length}</span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table" style="margin:0">
+              <thead>
+                <tr>
+                  <th style="width:45px;text-align:center">ลำดับ</th>
+                  <th>ชื่อผู้ถูกประเมิน</th>
+                  <th>ตำแหน่ง</th>
+                  <th style="text-align:center">บทบาท</th>
+                  <th style="text-align:center">ประเมินตนเอง (Self)</th>
+                  <th style="text-align:center">ผู้บังคับบัญชาประเมิน (Other)</th>
+                  <th style="text-align:center">ผลการประเมิน</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${deptTasks.map((t, idx) => {
+                  const selfDone = t.target_self_status === 'COMPLETED' || t.target_self_done;
+                  const otherDone = t.status === 'COMPLETED';
+                  const isUnitHead = t.target?.role === 'UNIT_HEAD';
+                  const isGroupHead = t.target?.role === 'GROUP_HEAD';
+
+                  let roleBadge = '<span class="badge closed" style="font-size:11px">พยาบาลประจำการ</span>';
+                  if (isUnitHead) {
+                    roleBadge = '<span class="badge" style="background:#fef3c7;color:#92400e;font-size:11px"><i class="fa-solid fa-crown"></i> หัวหน้างาน</span>';
+                  } else if (isGroupHead) {
+                    roleBadge = '<span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:11px"><i class="fa-solid fa-layer-group"></i> หัวหน้ากลุ่มงาน</span>';
+                  }
+
+                  const selfBadge = selfDone
+                    ? '<span class="badge done" style="font-size:11px"><i class="fa-solid fa-check"></i> เรียบร้อย</span>'
+                    : '<span class="badge closed" style="font-size:11px"><i class="fa-solid fa-clock"></i> ยังไม่ส่ง</span>';
+
+                  const otherBadge = otherDone
+                    ? '<span class="badge done" style="font-size:11px"><i class="fa-solid fa-check-double"></i> ประเมินแล้ว</span>'
+                    : (selfDone 
+                        ? '<span class="badge pending" style="font-size:11px"><i class="fa-solid fa-hourglass-half"></i> รอประเมิน</span>'
+                        : '<span class="badge closed" style="font-size:11px"><i class="fa-solid fa-lock"></i> รอ Self</span>');
+
+                  return `
+                    <tr>
+                      <td style="text-align:center;color:var(--muted)">${idx + 1}</td>
+                      <td>
+                        <strong>${esc(t.target?.full_name || 'ไม่ระบุชื่อ')}</strong>
+                      </td>
+                      <td>${esc(t.target?.position || 'พยาบาลวิชาชีพ')}</td>
+                      <td style="text-align:center">${roleBadge}</td>
+                      <td style="text-align:center">${selfBadge}</td>
+                      <td style="text-align:center">${otherBadge}</td>
+                      <td style="text-align:center">
+                        ${(otherDone || selfDone) ? `
+                          <button class="btn ghost small" onclick="viewMyReport('${t.target_user_id}')" style="padding:4px 8px;font-size:12px">
+                            <i class="fa-solid fa-chart-pie"></i> ดูผล
+                          </button>
+                        ` : '<span class="muted" style="font-size:12px">—</span>'}
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }).join('')}
   `;
 }
 
