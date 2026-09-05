@@ -767,6 +767,30 @@ function getLocalDashboardFallback() {
   };
 }
 
+// ----------------------------------------------------
+// 3. DASHBOARD PAGE (dashboard.html)
+// ----------------------------------------------------
+async function loadDashboardData() {
+  if (!state.user?.id) return;
+  showSkeletonLoading('กำลังโหลดข้อมูลการประเมิน...');
+  try {
+    if (cloudEnabled()) {
+      const res = await api('get_ethics_dashboard', { user_id: state.user.id });
+      state.dashboardData = res;
+      if (res.user?.role) state.user.role = res.user.role;
+      localStorage.setItem('np_session', JSON.stringify(state.user));
+    } else {
+      state.dashboardData = getLocalDashboardFallback();
+    }
+  } catch (e) {
+    console.error('loadDashboardData error:', e);
+    state.dashboardData = getLocalDashboardFallback();
+  } finally {
+    hideSkeletonLoading();
+    render();
+  }
+}
+
 function renderDashboard() {
   if (!state.user) {
     navTo('login.html');
