@@ -281,7 +281,7 @@ function shell(content) {
       </header>
       ${content}
       <footer class="site-footer">
-        <span>&copy; 2026 ระบบประเมินพฤติกรรมจริยธรรมวิชาชีพของพยาบาล &nbsp;&bull;&nbsp; โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</span>
+        <span>&copy; 2026 Developed By Natnarinthorn &nbsp;&bull;&nbsp; Nursing Informatics System</span>
       </footer>
     </div>
   `;
@@ -902,7 +902,7 @@ function renderDashboard() {
           ${mainContent}
         </div>
         <footer class="site-footer">
-          <span>&copy; 2026 ระบบประเมินพฤติกรรมจริยธรรมวิชาชีพของพยาบาล &nbsp;&bull;&nbsp; โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</span>
+          <span>&copy; 2026 Developed By Natnarinthorn &nbsp;&bull;&nbsp; Nursing Informatics System</span>
         </footer>
       </main>
     </div>
@@ -1952,7 +1952,7 @@ function renderAdmin() {
           </div>
         </div>
         <footer class="site-footer">
-          <span>&copy; 2026 ระบบประเมินพฤติกรรมจริยธรรมวิชาชีพของพยาบาล &nbsp;&bull;&nbsp; โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</span>
+          <span>&copy; 2026 Developed By Natnarinthorn &nbsp;&bull;&nbsp; Nursing Informatics System</span>
         </footer>
       </main>
     </div>
