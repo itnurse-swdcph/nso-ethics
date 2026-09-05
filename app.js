@@ -58,7 +58,7 @@ let state = {
   activeReport: null,
   
   // Admin State
-  adminTab: 'summary', // 'summary' | 'users' | 'templates' | 'export'
+  adminTab: 'summary', // 'summary' | 'users' | 'templates' | 'periods' | 'export'
   adminUsers: [],
   userSortKey: 'name',
   userSortDir: 'asc',
@@ -66,7 +66,12 @@ let state = {
   userFilterDept: 'all',
   userSearchQuery: '',
   userPage: 1,
-  userPageSize: 15,
+  userPageSize: 50,
+  adminPeriods: [],
+  adminTemplateView: null, // null | template object being viewed
+
+  // Sidebar
+  sidebarCollapsed: localStorage.getItem('np_sidebar_collapsed') === '1',
   
   // Executive Report Data
   executiveData: null,
@@ -117,7 +122,124 @@ async function api(action, input = {}) {
   return res.json();
 }
 
-// Shell Layout
+// ============================================================
+// SIDEBAR FUNCTIONS
+// ============================================================
+function toggleSidebar() {
+  state.sidebarCollapsed = !state.sidebarCollapsed;
+  localStorage.setItem('np_sidebar_collapsed', state.sidebarCollapsed ? '1' : '0');
+  const sidebar = document.querySelector('.app-sidebar');
+  const main = document.querySelector('.app-main');
+  if (sidebar) sidebar.classList.toggle('collapsed', state.sidebarCollapsed);
+  if (main) main.classList.toggle('sidebar-collapsed', state.sidebarCollapsed);
+}
+
+function openMobileSidebar() {
+  document.querySelector('.app-sidebar')?.classList.add('mobile-open');
+  document.querySelector('.sidebar-overlay')?.classList.add('open');
+}
+
+function closeMobileSidebar() {
+  document.querySelector('.app-sidebar')?.classList.remove('mobile-open');
+  document.querySelector('.sidebar-overlay')?.classList.remove('open');
+}
+
+function renderAppSidebar(activePage) {
+  const isUser = Boolean(state.user);
+  const isAdmin = Boolean(state.admin);
+  const role = state.user?.role || 'NURSE';
+  const roleName = roles[role] || role;
+  const collapsed = state.sidebarCollapsed;
+
+  const navItem = (icon, label, href, page, onclick) => {
+    const isActive = activePage === page;
+    const clickAttr = onclick ? `onclick="${onclick}"` : '';
+    const hrefAttr = href ? `href="${href}"` : '';
+    const tag = href ? 'a' : 'button';
+    return `<${tag} ${hrefAttr} ${clickAttr} class="sidebar-nav-item ${isActive ? 'active' : ''}" style="text-decoration:none">
+      <i class="${icon} nav-icon"></i>
+      <span class="nav-btn-text">${label}</span>
+    </${tag}>`;
+  };
+
+  let navItems = '';
+  if (activePage === 'admin') {
+    navItems = `
+      <div class="sidebar-nav-label"><span class="nav-btn-text">การบริหารจัดการ</span></div>
+      ${navItem('fa-solid fa-chart-pie', 'แดชบอร์ดภาพรวม', '', 'summary', "setAdminTab('summary')")}
+      ${navItem('fa-solid fa-users', 'ทะเบียนบุคลากร', '', 'users', "setAdminTab('users')")}
+      ${navItem('fa-solid fa-folder-tree', 'ชุดแบบประเมิน', '', 'templates', "setAdminTab('templates')")}
+      ${navItem('fa-solid fa-calendar-days', 'รอบการประเมิน', '', 'periods', "setAdminTab('periods')")}
+      <div class="sidebar-nav-label" style="margin-top:8px"><span class="nav-btn-text">ส่งออกข้อมูล</span></div>
+      ${navItem('fa-solid fa-file-excel', 'Export Excel', '', '', "exportSummaryExcel()")}
+    `;
+  } else {
+    navItems = `
+      <div class="sidebar-nav-label"><span class="nav-btn-text">เมนูการประเมิน</span></div>
+      ${navItem('fa-solid fa-clipboard-check', (role === 'HEAD_NURSE' ? 'ภาพรวมการประเมิน' : 'แบบประเมินของฉัน'), '', 'my_assessment', "switchDashboardTab('my_assessment')")}
+      ${['UNIT_HEAD','GROUP_HEAD','HEAD_NURSE'].includes(role) ? navItem('fa-solid fa-users-viewfinder',
+        role === 'UNIT_HEAD' ? 'ประเมินพยาบาลในหน่วยงาน' : role === 'GROUP_HEAD' ? 'ประเมินหัวหน้างาน' : 'ประเมินหัวหน้ากลุ่มงาน',
+        '', 'evaluate_dept', "switchDashboardTab('evaluate_dept')") : ''}
+      ${(['HEAD_NURSE','ADMIN'].includes(role) || state.admin) ? navItem('fa-solid fa-chart-pie', 'รายงานผู้บริหาร', '', 'all_reports', "switchDashboardTab('all_reports')") : ''}
+      <div class="sidebar-nav-label" style="margin-top:8px"><span class="nav-btn-text">บัญชีผู้ใช้</span></div>
+      ${navItem('fa-solid fa-user-gear', 'ตั้งค่าบัญชี', '', 'account', "switchDashboardTab('account')")}
+      ${state.admin ? navItem('fa-solid fa-shield-halved', 'ระบบผู้ดูแล', 'admin.html', '', '') : ''}
+    `;
+  }
+
+  return `
+    <button class="mobile-sidebar-toggle" onclick="openMobileSidebar()" aria-label="เปิดเมนู">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+    <aside class="app-sidebar ${collapsed ? 'collapsed' : ''}">
+      <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="ย่อ/ขยายแถบเมนู">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <a href="index.html" class="sidebar-brand" style="text-decoration:none">
+        <img class="brand-logo" src="nurse-logo.png" alt="โลโก้">
+        <span class="brand-text">
+          <small style="display:block;font-size:10px;color:var(--muted);font-weight:500">กลุ่มการพยาบาล · รพร.สว่างแดนดิน</small>
+          <strong style="font-size:13px;color:var(--navy)">ระบบประเมินจริยธรรมวิชาชีพ</strong>
+        </span>
+      </a>
+
+      ${isUser ? `
+        <div class="sidebar-user-chip">
+          <div class="avatar">${esc(state.user.name.slice(0,1))}</div>
+          <div class="sidebar-user-info">
+            <strong>${esc(state.user.name)}</strong>
+            <span class="badge-level" style="display:block;margin-top:2px">${esc(roleName)}</span>
+            <span class="user-dept"><i class="fa-solid fa-hospital-user"></i> ${esc(state.user.department || '')}</span>
+          </div>
+        </div>
+      ` : isAdmin ? `
+        <div class="sidebar-user-chip">
+          <div class="avatar" style="background:#fce4d6;color:#b83c15"><i class="fa-solid fa-shield-halved"></i></div>
+          <div class="sidebar-user-info">
+            <strong>ผู้ดูแลระบบ</strong>
+            <span class="badge-level" style="display:block;margin-top:2px">Admin</span>
+          </div>
+        </div>
+      ` : ''}
+
+      <nav class="sidebar-nav-body">
+        <div class="sidebar-nav-section">
+          ${navItems}
+        </div>
+        <div class="sidebar-nav-section">
+          <button class="sidebar-nav-item signout" onclick="logout()">
+            <i class="fa-solid fa-right-from-bracket nav-icon"></i>
+            <span class="nav-btn-text">ออกจากระบบ</span>
+          </button>
+        </div>
+      </nav>
+    </aside>
+  `;
+}
+
+// Shell Layout (for pages not yet on sidebar)
 function shell(content) {
   const isUser = Boolean(state.user);
   const isAdmin = Boolean(state.admin);
@@ -236,6 +358,8 @@ function renderLogin() {
   `);
 }
 
+let lastSearchResults = [];
+
 async function findUsers() {
   let q = document.querySelector('#userSearch').value.toLowerCase().trim();
   let result = [];
@@ -259,6 +383,7 @@ async function findUsers() {
     }
   }
 
+  lastSearchResults = result;
   const container = document.querySelector('#searchResults');
   if (!container) return;
 
@@ -284,21 +409,29 @@ async function findUsers() {
 async function enterUser(id) {
   showSkeletonLoading('กำลังเข้าสู่ระบบ...');
   try {
-    if (cloudEnabled()) {
-      const profiles = await api('search_profiles', { query: '' });
-      const found = profiles.find(x => x.id === id);
-      if (found) {
-        state.user = {
-          id: found.id,
-          name: found.full_name,
-          position: found.position,
-          level: found.level,
-          role: found.role || (found.full_name?.includes('ลาวัณย์') ? 'HEAD_NURSE' : found.level === 'head_of_group' ? 'GROUP_HEAD' : found.level === 'head_of_unit' ? 'UNIT_HEAD' : 'NURSE'),
-          department: found.departments?.name || 'กลุ่มการพยาบาล'
-        };
+    const foundInSearch = lastSearchResults.find(x => x.id === id);
+    if (foundInSearch) {
+      state.user = foundInSearch;
+    } else if (cloudEnabled()) {
+      const searchInp = document.querySelector('#userSearch')?.value?.trim() || '';
+      if (searchInp.length >= 2) {
+        const profiles = await api('search_profiles', { query: searchInp });
+        const found = profiles.find(x => x.id === id);
+        if (found) {
+          state.user = {
+            id: found.id,
+            name: found.full_name,
+            position: found.position,
+            level: found.level,
+            role: found.role || (found.full_name?.includes('ลาวัณย์') ? 'HEAD_NURSE' : found.level === 'head_of_group' ? 'GROUP_HEAD' : found.level === 'head_of_unit' ? 'UNIT_HEAD' : 'NURSE'),
+            department: found.departments?.name || 'กลุ่มการพยาบาล'
+          };
+        }
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('enterUser error:', e);
+  }
   
   if (!state.user) {
     state.user = users.find(x => x.id === id);
@@ -308,6 +441,7 @@ async function enterUser(id) {
   localStorage.setItem('np_session', JSON.stringify(state.user));
   navTo('dashboard.html');
 }
+
 
 function showRegister() {
   modal(
@@ -423,7 +557,9 @@ function renderDashboard() {
 
   // Render Role-Specific Sections
   let mainContent = '';
-  if (role === 'HEAD_NURSE') {
+  if (state.dashboardTab === 'account') {
+    mainContent = renderAccountSettings();
+  } else if (role === 'HEAD_NURSE') {
     mainContent = renderHeadNurseDashboard();
   } else if (role === 'GROUP_HEAD') {
     mainContent = renderGroupHeadDashboard();
@@ -433,50 +569,27 @@ function renderDashboard() {
     mainContent = renderNurseDashboard();
   }
 
-  app.innerHTML = shell(`
-    <div class="container dashboard">
-      <aside class="sidebar">
-        <div class="user-chip">
-          <div class="avatar">${state.user.name.slice(0, 1)}</div>
-          <strong>${esc(state.user.name)}</strong><br>
-          <span class="badge-level" style="margin-top:4px">${esc(roleName)}</span>
-          <div class="muted" style="font-size:12px;margin-top:6px"><i class="fa-solid fa-hospital-user"></i> ${esc(state.user.department)}</div>
-          <div style="clear:both"></div>
-        </div>
-        
-        <div class="nav-label">เมนูการประเมิน</div>
-        <button class="nav-button ${state.dashboardTab === 'my_assessment' ? 'active' : ''}" onclick="switchDashboardTab('my_assessment')">
-          <i class="fa-solid fa-clipboard-check"></i> ${role === 'HEAD_NURSE' ? 'ภาพรวมการประเมิน' : 'แบบประเมินของฉัน'}
-        </button>
-
-        ${['UNIT_HEAD', 'GROUP_HEAD', 'HEAD_NURSE'].includes(role) ? `
-          <button class="nav-button ${state.dashboardTab === 'evaluate_dept' ? 'active' : ''}" onclick="switchDashboardTab('evaluate_dept')">
-            <i class="fa-solid fa-users-viewfinder"></i> ${role === 'UNIT_HEAD' ? 'ประเมินพยาบาลในหน่วยงาน' : role === 'GROUP_HEAD' ? 'ประเมินหัวหน้างาน' : 'ประเมินหัวหน้ากลุ่มงาน'}
-          </button>
-        ` : ''}
-
-        ${['HEAD_NURSE', 'ADMIN'].includes(role) || state.admin ? `
-          <button class="nav-button ${state.dashboardTab === 'all_reports' ? 'active' : ''}" onclick="switchDashboardTab('all_reports')">
-            <i class="fa-solid fa-chart-pie"></i> รายงานระดับผู้บริหาร
-          </button>
-        ` : ''}
-
-        <button class="nav-button signout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</button>
-      </aside>
-
-      <section>
-        <div class="page-header">
-          <div>
-            <div class="eyebrow"><i class="fa-solid fa-calendar-check"></i> ${esc(periodName)}</div>
-            <h2>ระบบประเมินพฤติกรรมจริยธรรมวิชาชีพ</h2>
-            <p class="muted">บทบาท: <strong>${esc(roleName)}</strong> &nbsp;|&nbsp; สังกัด: ${esc(state.user.department)}</p>
+  const collapsed = state.sidebarCollapsed;
+  app.innerHTML = `
+    <div class="app-layout">
+      ${renderAppSidebar(state.dashboardTab || 'my_assessment')}
+      <main class="app-main ${collapsed ? 'sidebar-collapsed' : ''}">
+        <div class="container" style="max-width:1100px;padding:30px 24px">
+          <div class="page-header">
+            <div>
+              <div class="eyebrow"><i class="fa-solid fa-calendar-check"></i> ${esc(periodName)}</div>
+              <h2>ระบบประเมินพฤติกรรมจริยธรรมวิชาชีพ</h2>
+              <p class="muted">บทบาท: <strong>${esc(roleName)}</strong> &nbsp;|&nbsp; สังกัด: ${esc(state.user.department)}</p>
+            </div>
           </div>
+          ${mainContent}
         </div>
-
-        ${mainContent}
-      </section>
+        <footer class="site-footer">
+          <span>&copy; 2026 ระบบประเมินพฤติกรรมจริยธรรมวิชาชีพของพยาบาล &nbsp;&bull;&nbsp; โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</span>
+        </footer>
+      </main>
     </div>
-  `);
+  `;
 }
 
 function switchDashboardTab(tab) {
@@ -597,7 +710,7 @@ function renderGroupHeadDashboard() {
           <div class="eyebrow" style="color:#2563eb"><i class="fa-solid fa-user-pen"></i> การประเมินตนเองของหัวหน้ากลุ่มงาน (Self Assessment)</div>
           <h3 style="margin:4px 0 8px">แบบวัดพฤติกรรมจริยธรรมในการบริหารงานของหัวหน้ากลุ่มงาน</h3>
           <div class="survey-meta">
-            <span><i class="fa-solid fa-list-check"></i> จำนวน 30 ข้อคำถาม</span>
+            <span><i class="fa-solid fa-list-check"></i> จำนวน 65 ข้อคำถาม</span>
             <span><i class="fa-solid fa-clock"></i> สถานะ: 
               ${isSelfDone 
                 ? '<span class="badge done"><i class="fa-solid fa-check"></i> ประเมินเสร็จแล้ว</span>' 
@@ -1411,44 +1524,68 @@ function renderAdmin() {
     return;
   }
 
-  app.innerHTML = shell(`
-    <div class="container admin-layout">
-      <div class="page-header">
-        <div>
-          <div class="eyebrow"><i class="fa-solid fa-shield-halved"></i> ระบบบริหารจัดการสำหรับผู้ดูแล</div>
-          <h2>การบริหารจัดการระบบประเมินจริยธรรม</h2>
-        </div>
-        <div class="inline-actions">
-          <button class="btn outline small" onclick="exportSummaryExcel()"><i class="fa-solid fa-file-excel"></i> Export Summary</button>
-          <button class="btn small" onclick="showAddUserModal()"><i class="fa-solid fa-user-plus"></i> เพิ่มบุคลากร</button>
-        </div>
-      </div>
+  const collapsed = state.sidebarCollapsed;
+  let tabContent = '';
+  if (state.adminTab === 'users') tabContent = renderAdminUsersTab();
+  else if (state.adminTab === 'templates') tabContent = state.adminTemplateView ? renderAdminTemplateDetail(state.adminTemplateView) : renderAdminTemplatesTab();
+  else if (state.adminTab === 'periods') tabContent = renderAdminPeriodsTab();
+  else tabContent = renderExecutiveReportsView();
 
-      <div class="tabs">
-        <button class="tab ${state.adminTab === 'summary' ? 'active' : ''}" onclick="setAdminTab('summary')">
-          <i class="fa-solid fa-chart-pie"></i> แดชบอร์ดภาพรวม
-        </button>
-        <button class="tab ${state.adminTab === 'users' ? 'active' : ''}" onclick="setAdminTab('users')">
-          <i class="fa-solid fa-users"></i> ทะเบียนบุคลากร (${state.adminUsers.length || '...'})
-        </button>
-        <button class="tab ${state.adminTab === 'templates' ? 'active' : ''}" onclick="setAdminTab('templates')">
-          <i class="fa-solid fa-folder-tree"></i> ชุดแบบประเมินและข้อคำถาม
-        </button>
-      </div>
-
-      <div class="admin-content">
-        ${state.adminTab === 'users' ? renderAdminUsersTab() :
-          state.adminTab === 'templates' ? renderAdminTemplatesTab() :
-          renderExecutiveReportsView()}
-      </div>
+  app.innerHTML = `
+    <div class="app-layout">
+      ${renderAppSidebar(state.adminTab)}
+      <main class="app-main ${collapsed ? 'sidebar-collapsed' : ''}">
+        <div class="container admin-layout" style="max-width:1200px">
+          <div class="page-header">
+            <div>
+              <div class="eyebrow"><i class="fa-solid fa-shield-halved"></i> ระบบบริหารจัดการสำหรับผู้ดูแล</div>
+              <h2>การบริหารจัดการระบบประเมินจริยธรรม</h2>
+            </div>
+            <div class="inline-actions">
+              <button class="btn outline small" onclick="exportSummaryExcel()"><i class="fa-solid fa-file-excel"></i> Export Summary</button>
+              <button class="btn small" onclick="showAdminUserForm(null)"><i class="fa-solid fa-user-plus"></i> เพิ่มบุคลากร</button>
+            </div>
+          </div>
+          <div class="admin-content">
+            ${tabContent}
+          </div>
+        </div>
+        <footer class="site-footer">
+          <span>&copy; 2026 ระบบประเมินพฤติกรรมจริยธรรมวิชาชีพของพยาบาล &nbsp;&bull;&nbsp; โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</span>
+        </footer>
+      </main>
     </div>
-  `);
+  `;
 }
 
 function setAdminTab(tab) {
   state.adminTab = tab;
+  state.adminTemplateView = null;
   render();
   if (tab === 'users' && !state.adminUsers.length) fetchAdminUsers();
+  if (tab === 'periods') fetchAdminPeriods();
+}
+
+async function fetchAdminPeriods() {
+  try {
+    if (cloudEnabled()) {
+      const list = await api('admin_list_periods');
+      state.adminPeriods = list || [];
+    } else {
+      state.adminPeriods = [{
+        id: 'p1000000-0000-0000-0000-000000000001',
+        name: 'รอบที่ 1/2569 (มกราคม - มิถุนายน 2569)',
+        start_date: '2026-01-01',
+        end_date: '2026-06-30',
+        status: 'ACTIVE'
+      }];
+    }
+  } catch(e) {
+    console.error('fetchAdminPeriods error:', e);
+    state.adminPeriods = [];
+  } finally {
+    render();
+  }
 }
 
 async function fetchAdminUsers() {
@@ -1468,18 +1605,77 @@ async function fetchAdminUsers() {
   }
 }
 
+// ------ Admin User Search/Filter Functions (fix JS errors) ------
+function searchAdminUser(val) {
+  state.userSearchQuery = val;
+  state.userPage = 1;
+  render();
+  // Restore input focus and cursor
+  setTimeout(() => {
+    const inp = document.querySelector('#adminUserSearchInput');
+    if (inp) { inp.focus(); inp.selectionStart = inp.selectionEnd = inp.value.length; }
+  }, 0);
+}
+
+function filterAdminRole(val) {
+  state.userFilterRole = val;
+  state.userPage = 1;
+  render();
+}
+
+function setAdminPageSize(size) {
+  state.userPageSize = size === 'all' ? 'all' : Number(size);
+  state.userPage = 1;
+  render();
+}
+
+function goToAdminPage(p) {
+  state.userPage = p;
+  render();
+}
+
 function renderAdminUsersTab() {
+  // Filter users
+  let filtered = state.adminUsers.filter(u => {
+    const q = (state.userSearchQuery || '').toLowerCase();
+    const matchSearch = !q || [u.name, u.position, u.department].some(f => (f||'').toLowerCase().includes(q));
+    const matchRole = state.userFilterRole === 'all' || u.role === state.userFilterRole;
+    return matchSearch && matchRole;
+  });
+
+  const pageSize = state.userPageSize === 'all' ? filtered.length : (state.userPageSize || 50);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const page = Math.min(state.userPage || 1, totalPages);
+  const start = (page - 1) * pageSize;
+  const paged = filtered.slice(start, start + pageSize);
+
+  const pageNums = () => {
+    let nums = '';
+    const lo = Math.max(1, page - 2);
+    const hi = Math.min(totalPages, page + 2);
+    if (lo > 1) nums += `<button class="page-num" onclick="goToAdminPage(1)">1</button>${lo > 2 ? '<span style="padding:0 4px">…</span>' : ''}`;
+    for (let i = lo; i <= hi; i++) nums += `<button class="page-num ${i===page?'active':''}" onclick="goToAdminPage(${i})">${i}</button>`;
+    if (hi < totalPages) nums += `${hi < totalPages-1 ? '<span style="padding:0 4px">…</span>' : ''}<button class="page-num" onclick="goToAdminPage(${totalPages})">${totalPages}</button>`;
+    return nums;
+  };
+
   return `
     <div class="card users-card">
       <div class="user-toolbar">
         <div class="user-toolbar-left">
           <div class="search-box">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" placeholder="ค้นหาชื่อ, ตำแหน่ง, สังกัด..." oninput="searchAdminUser(this.value)">
+            <input id="adminUserSearchInput" type="text" placeholder="ค้นหาชื่อ, ตำแหน่ง, สังกัด..." value="${esc(state.userSearchQuery||'')}" oninput="searchAdminUser(this.value)">
           </div>
           <select class="select-sm" onchange="filterAdminRole(this.value)">
-            <option value="all">ทุกบทบาท</option>
-            ${Object.entries(roles).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
+            <option value="all" ${state.userFilterRole==='all'?'selected':''}>ทุกบทบาท</option>
+            ${Object.entries(roles).map(([k, v]) => `<option value="${k}" ${state.userFilterRole===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="user-toolbar-right">
+          <span class="muted" style="font-size:13px">แสดง:</span>
+          <select class="select-sm" onchange="setAdminPageSize(this.value)" style="width:80px">
+            ${[25,50,100,'all'].map(n => `<option value="${n}" ${state.userPageSize==n?'selected':''}>${n==='all'?'ทั้งหมด':n}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -1497,24 +1693,95 @@ function renderAdminUsersTab() {
             </tr>
           </thead>
           <tbody>
-            ${state.adminUsers.slice(0, 25).map((u, i) => `
+            ${paged.length ? paged.map((u, i) => `
               <tr>
-                <td style="text-align:center">${i + 1}</td>
-                <td><strong>${esc(u.name)}</strong></td>
+                <td style="text-align:center">${start + i + 1}</td>
+                <td><strong>${esc(u.name)}</strong>${u.is_self_registered ? ' <span class="badge-self">ลงทะเบียนเอง</span>' : ''}</td>
                 <td>${esc(u.position)}</td>
-                <td><span class="badge-level">${esc(roles[u.role] || roles.NURSE)}</span></td>
+                <td><span class="badge-level">${esc(roles[u.role] || 'พยาบาลประจำการ')}</span></td>
                 <td>${esc(u.department)}</td>
                 <td style="text-align:center">
-                  <button class="btn ghost small" onclick="viewMyReport('${u.id}')"><i class="fa-solid fa-eye"></i> ดูผล</button>
+                  <div class="inline-actions" style="justify-content:center;gap:6px">
+                    <button class="btn ghost small" onclick="viewMyReport('${u.id}')"><i class="fa-solid fa-eye"></i> ดูผล</button>
+                    <button class="btn outline small" onclick="showAdminUserForm('${u.id}')"><i class="fa-solid fa-pen-to-square"></i> จัดการ</button>
+                  </div>
                 </td>
               </tr>
-            `).join('')}
+            `).join('') : `<tr><td colspan="6" style="text-align:center;padding:30px" class="muted"><i class="fa-solid fa-magnifying-glass" style="font-size:28px;display:block;margin-bottom:8px"></i>ไม่พบข้อมูลที่ค้นหา</td></tr>`}
           </tbody>
         </table>
+      </div>
+
+      <div class="pagination-bar">
+        <span class="muted">แสดง ${filtered.length === 0 ? 0 : start+1}–${Math.min(start+pageSize, filtered.length)} จาก ${filtered.length} รายการ (ทั้งหมด ${state.adminUsers.length} คน)</span>
+        <div class="pagination-nav">
+          <button class="page-num" onclick="goToAdminPage(${page-1})" ${page<=1?'disabled':''}>‹</button>
+          ${pageNums()}
+          <button class="page-num" onclick="goToAdminPage(${page+1})" ${page>=totalPages?'disabled':''}>›</button>
+        </div>
       </div>
     </div>
   `;
 }
+
+// Admin user form modal (เพิ่ม/แก้ไขบุคลากร)
+function showAdminUserForm(id) {
+  const u = id ? (state.adminUsers.find(x => x.id === id) || {}) : {};
+  const positions = ['พยาบาลวิชาชีพ','ผู้ช่วยพยาบาล','พนักงานธุรการ','พนักงานผู้ช่วยเหลือคนไข้','อื่นๆ'];
+  modal(
+    id ? 'แก้ไขข้อมูลบุคลากร' : 'เพิ่มบุคลากรใหม่',
+    `
+    <input type="hidden" id="editUserId" value="${u.id || ''}">
+    <div class="field"><label>ชื่อ-นามสกุล *</label><input id="editUserName" value="${esc(u.name||'')}" placeholder="เช่น นางสาววิภาดา รักษาดี"></div>
+    <div class="field"><label>ตำแหน่ง *</label><select id="editUserPos">${positions.map(p=>`<option ${p===(u.position||positions[0])?'selected':''}>${p}</option>`).join('')}</select></div>
+    <div class="field"><label>บทบาทหน้าที่ *</label><select id="editUserRole">${Object.entries(roles).map(([k,v])=>`<option value="${k}" ${k===(u.role||'NURSE')?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>หน่วยงาน/หอผู้ป่วย *</label><input id="editUserDept" value="${esc(u.department||'')}" placeholder="เช่น งานการพยาบาลผู้ป่วยศัลยกรรม"></div>
+    `,
+    `<button class="btn outline" onclick="closeModal()">ยกเลิก</button><button class="btn" onclick="saveAdminUser()"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>`
+  );
+}
+
+async function saveAdminUser() {
+  const id = document.querySelector('#editUserId')?.value;
+  const name = document.querySelector('#editUserName')?.value.trim();
+  const position = document.querySelector('#editUserPos')?.value;
+  const role = document.querySelector('#editUserRole')?.value;
+  const department = document.querySelector('#editUserDept')?.value.trim();
+  if (!name || !department) return toast('กรุณากรอกชื่อและหน่วยงาน');
+  try {
+    let saved;
+    if (cloudEnabled()) {
+      saved = await api('admin_save_user', { id: id || null, name, position, role, department });
+    } else {
+      saved = { id: id || ('u_' + Date.now()), name, position, role, department };
+    }
+    const idx = state.adminUsers.findIndex(x => x.id === (id || saved.id));
+    if (idx >= 0) state.adminUsers[idx] = { ...state.adminUsers[idx], ...saved, name, position, role, department };
+    else state.adminUsers.unshift({ id: saved.id || ('u_'+Date.now()), name, position, role, department });
+    closeModal();
+    toast(id ? 'อัพเดทข้อมูลเรียบร้อย' : 'เพิ่มบุคลากรเรียบร้อย');
+    render();
+  } catch(e) {
+    toast('ไม่สามารถบันทึกข้อมูลได้: ' + (e.message || e));
+  }
+}
+
+async function deleteAdminUser(id) {
+  const u = state.adminUsers.find(x => x.id === id);
+  if (!u) return;
+  if (!confirm(`ยืนยันลบ "${u.name}" ออกจากระบบ?`)) return;
+  try {
+    if (cloudEnabled()) await api('admin_delete_user', { id });
+    state.adminUsers = state.adminUsers.filter(x => x.id !== id);
+    toast('ลบบุคลากรเรียบร้อย');
+    render();
+  } catch(e) {
+    toast('ลบไม่สำเร็จ: ' + (e.message || e));
+  }
+}
+
+// Alias for backward compat
+function showAddUserModal() { showAdminUserForm(null); }
 
 function renderAdminTemplatesTab() {
   return `
