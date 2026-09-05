@@ -58,7 +58,7 @@ let state = {
   activeReport: null,
   
   // Admin State
-  adminTab: 'summary', // 'summary' | 'users' | 'templates' | 'periods' | 'export'
+  adminTab: 'dashboard', // 'dashboard' | 'reports' | 'users' | 'templates'
   adminUsers: [],
   userSortKey: 'name',
   userSortDir: 'asc',
@@ -163,15 +163,14 @@ function renderAppSidebar(activePage) {
   };
 
   let navItems = '';
-  if (activePage === 'admin') {
+  if (activePage === 'dashboard' || activePage === 'reports' || activePage === 'users' || activePage === 'templates') {
+    // Admin sidebar - 4 menus as required
     navItems = `
-      <div class="sidebar-nav-label"><span class="nav-btn-text">การบริหารจัดการ</span></div>
-      ${navItem('fa-solid fa-chart-pie', 'แดชบอร์ดภาพรวม', '', 'summary', "setAdminTab('summary')")}
-      ${navItem('fa-solid fa-users', 'ทะเบียนบุคลากร', '', 'users', "setAdminTab('users')")}
-      ${navItem('fa-solid fa-folder-tree', 'ชุดแบบประเมิน', '', 'templates', "setAdminTab('templates')")}
-      ${navItem('fa-solid fa-calendar-days', 'รอบการประเมิน', '', 'periods', "setAdminTab('periods')")}
-      <div class="sidebar-nav-label" style="margin-top:8px"><span class="nav-btn-text">ส่งออกข้อมูล</span></div>
-      ${navItem('fa-solid fa-file-excel', 'Export Excel', '', '', "exportSummaryExcel()")}
+      <div class="sidebar-nav-label"><span class="nav-btn-text">ระบบบริหารจัดการ</span></div>
+      ${navItem('fa-solid fa-gauge-high', '1. แดชบอร์ด', '', 'dashboard', "setAdminTab('dashboard')")}
+      ${navItem('fa-solid fa-chart-pie', '2. สรุปรายงาน', '', 'reports', "setAdminTab('reports')")}
+      ${navItem('fa-solid fa-users', '3. จัดการผู้ใช้', '', 'users', "setAdminTab('users')")}
+      ${navItem('fa-solid fa-file-signature', '4. จัดการแบบสอบประเมิน', '', 'templates', "setAdminTab('templates')")}
     `;
   } else {
     navItems = `
@@ -180,6 +179,7 @@ function renderAppSidebar(activePage) {
       ${['UNIT_HEAD','GROUP_HEAD','HEAD_NURSE'].includes(role) ? navItem('fa-solid fa-users-viewfinder',
         role === 'UNIT_HEAD' ? 'ประเมินพยาบาลในหน่วยงาน' : role === 'GROUP_HEAD' ? 'ประเมินหัวหน้างาน' : 'ประเมินหัวหน้ากลุ่มงาน',
         '', 'evaluate_dept', "switchDashboardTab('evaluate_dept')") : ''}
+      ${['UNIT_HEAD','GROUP_HEAD'].includes(role) ? navItem('fa-solid fa-magnifying-glass-chart', 'ตรวจสอบการประเมิน', '', 'inspect_units', "switchDashboardTab('inspect_units')") : ''}
       ${(['HEAD_NURSE','ADMIN'].includes(role) || state.admin) ? navItem('fa-solid fa-chart-pie', 'รายงานผู้บริหาร', '', 'all_reports', "switchDashboardTab('all_reports')") : ''}
       <div class="sidebar-nav-label" style="margin-top:8px"><span class="nav-btn-text">บัญชีผู้ใช้</span></div>
       ${navItem('fa-solid fa-user-gear', 'ตั้งค่าบัญชี', '', 'account', "switchDashboardTab('account')")}
@@ -499,6 +499,49 @@ async function registerUser() {
   }
 }
 
+function renderAdminTemplatesTab() {
+  const nurseCount = (ETHICS_QUESTION_BANK.nursePairs || []).length;
+  const unitHeadCount = (ETHICS_QUESTION_BANK.unitHeadPairs || []).length;
+  return `
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+        <div>
+          <h3 style="margin-bottom:4px"><i class="fa-solid fa-file-signature"></i> ชุดแบบประเมินจริยธรรมวิชาชีพ</h3>
+          <p class="muted" style="margin:0;font-size:13px">แบบประเมินทั้ง 3 ชุด ใช้สำหรับบุคลากรตามบทบาทหน้าที่ที่กำหนด</p>
+        </div>
+        <button class="btn ghost" onclick="toast('ฟีเจอร์การสร้างชุดแบบประเมินใหม่จะเปิดให้ใช้งานในเร็วๆ นี้')"><i class="fa-solid fa-plus"></i> เพิ่มชุดแบบประเมิน</button>
+      </div>
+      <div class="survey-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+        <div class="card" style="border-top:4px solid #2563eb;display:flex;flex-direction:column">
+          <div class="eyebrow" style="color:#2563eb"><i class="fa-solid fa-user-nurse"></i> ชุดที่ 1 — พยาบาลประจำการ</div>
+          <h3 style="margin:8px 0 4px">Clinical Ethics Assessment</h3>
+          <p class="muted">ประเมินพฤติกรรมจริยธรรมทางคลินิก</p>
+          <div style="margin:10px 0;flex-grow:1">
+            <span class="badge done"><i class="fa-solid fa-check"></i> Active</span>
+            <span style="margin-left:8px;font-size:13px;color:var(--muted)">จำนวน <strong>${nurseCount}</strong> ข้อคำถาม (QP-NURSE-01 ถึง ${nurseCount})</span>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin:0 0 12px">ใช้สำหรับ: พยาบาลประจำการ (NURSE)</p>
+          <button class="btn outline small" style="width:100%" onclick="toast('ฟีเจอร์แก้ไขข้อคำถามจะเปิดให้ใช้งานในเร็วๆ นี้')"><i class="fa-solid fa-pen-to-square"></i> จัดการข้อคำถาม</button>
+        </div>
+        <div class="card" style="border-top:4px solid #7c3aed;display:flex;flex-direction:column">
+          <div class="eyebrow" style="color:#7c3aed"><i class="fa-solid fa-user-tie"></i> ชุดที่ 2 — หัวหน้างาน &amp; หัวหน้ากลุ่มงาน</div>
+          <h3 style="margin:8px 0 4px">Administrative Ethics Assessment</h3>
+          <p class="muted">ประเมินพฤติกรรมจริยธรรมในการบริหารงาน</p>
+          <div style="margin:10px 0;flex-grow:1">
+            <span class="badge done"><i class="fa-solid fa-check"></i> Active</span>
+            <span style="margin-left:8px;font-size:13px;color:var(--muted)">จำนวน <strong>${unitHeadCount}</strong> ข้อคำถาม (QP-UNITHEAD-01 ถึง ${unitHeadCount})</span>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin:0">ใช้สำหรับ: หัวหน้างาน (UNIT_HEAD) และ หัวหน้ากลุ่มงาน (GROUP_HEAD)</p>
+          <div class="notice" style="margin-top:8px;margin-bottom:12px;font-size:12px;padding:8px 10px;background:#faf5ff;border:1px solid #e9d5ff;color:#6b21a8">
+            <i class="fa-solid fa-circle-info"></i> หัวหน้ากลุ่มงานใช้ข้อคำถามชุดเดียวกัน (65 ข้อ) กับหัวหน้างาน ตามนโยบายการประเมิน
+          </div>
+          <button class="btn outline small" style="width:100%" onclick="toast('ฟีเจอร์แก้ไขข้อคำถามจะเปิดให้ใช้งานในเร็วๆ นี้')"><i class="fa-solid fa-pen-to-square"></i> จัดการข้อคำถาม</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 // ----------------------------------------------------
 // 3. DASHBOARD PAGE (dashboard.html)
 // ----------------------------------------------------
@@ -559,6 +602,8 @@ function renderDashboard() {
   let mainContent = '';
   if (state.dashboardTab === 'account') {
     mainContent = renderAccountSettings();
+  } else if (state.dashboardTab === 'all_reports') {
+    mainContent = renderExecutiveReportsView();
   } else if (role === 'HEAD_NURSE') {
     mainContent = renderHeadNurseDashboard();
   } else if (role === 'GROUP_HEAD') {
@@ -649,13 +694,75 @@ function renderNurseDashboard() {
   `;
 }
 
+// 3.0 Account Settings
+function renderAccountSettings() {
+  const u = state.user || {};
+  const positions = ['พยาบาลวิชาชีพ','ผู้ช่วยพยาบาล','พนักงานธุรการ','พนักงานผู้ช่วยเหลือคนไข้','อื่นๆ'];
+  return `
+    <div class="card" style="max-width:560px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px">
+        <div class="avatar" style="width:52px;height:52px;font-size:22px;background:var(--brand-light);color:var(--brand)">${esc((u.name||'?').slice(0,1))}</div>
+        <div>
+          <h3 style="margin:0 0 3px">${esc(u.name || 'ผู้ใช้งาน')}</h3>
+          <span class="badge-level">${esc(roles[u.role] || 'พยาบาลประจำการ')}</span>
+        </div>
+      </div>
+      <h3 style="margin-bottom:16px"><i class="fa-solid fa-user-gear"></i> ตั้งค่าบัญชีของฉัน</h3>
+      <div class="field">
+        <label>ชื่อ-นามสกุล</label>
+        <input id="acctName" value="${esc(u.name||'')}" placeholder="ชื่อ-นามสกุล">
+      </div>
+      <div class="field">
+        <label>ตำแหน่ง</label>
+        <select id="acctPos">${positions.map(p => `<option ${p===(u.position||positions[0])?'selected':''}>${p}</option>`).join('')}</select>
+      </div>
+      <div class="field">
+        <label>หน่วยงาน / หอผู้ป่วย</label>
+        <input id="acctDept" value="${esc(u.department||'')}" placeholder="เช่น งานการพยาบาลผู้ป่วยนอก">
+      </div>
+      <div class="field">
+        <label>บทบาทหน้าที่</label>
+        <input value="${esc(roles[u.role] || 'พยาบาลประจำการ')}" disabled style="background:#f0f4f8;color:var(--muted)">
+        <small class="muted">บทบาทหน้าที่กำหนดโดยผู้ดูแลระบบ ไม่สามารถแก้ไขเองได้</small>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button class="btn" onclick="saveAccountSettings()"><i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูล</button>
+        <button class="btn outline" onclick="switchDashboardTab('my_assessment')">ยกเลิก</button>
+      </div>
+    </div>
+  `;
+}
+
+async function saveAccountSettings() {
+  const name = document.querySelector('#acctName')?.value?.trim();
+  const position = document.querySelector('#acctPos')?.value;
+  const department = document.querySelector('#acctDept')?.value?.trim();
+  if (!name || !department) return toast('กรุณากรอกชื่อและหน่วยงาน');
+  try {
+    if (cloudEnabled()) {
+      await api('admin_save_user', { id: state.user.id, name, position, department, role: state.user.role });
+    }
+    state.user = { ...state.user, name, position, department };
+    localStorage.setItem('np_session', JSON.stringify(state.user));
+    toast('บันทึกข้อมูลเรียบร้อย');
+    switchDashboardTab('my_assessment');
+  } catch(e) {
+    state.user = { ...state.user, name, position, department };
+    localStorage.setItem('np_session', JSON.stringify(state.user));
+    toast('บันทึกข้อมูลในอุปกรณ์เรียบร้อย');
+    switchDashboardTab('my_assessment');
+  }
+}
+
 // 3.2 Unit Head Dashboard
 function renderUnitHeadDashboard() {
   if (state.dashboardTab === 'evaluate_dept') {
     return renderEvaluateDeptSubView('NURSE', 'พยาบาลประจำการในหน่วยงาน');
   }
+  if (state.dashboardTab === 'inspect_units') {
+    return renderInspectUnitsView();
+  }
 
-  // Self tab
   const selfAssign = state.dashboardData?.selfAssignment;
   const isSelfDone = selfAssign?.status === 'COMPLETED';
 
@@ -681,13 +788,24 @@ function renderUnitHeadDashboard() {
         </div>
       </article>
 
-      <div class="card" style="margin-top:12px;background:#f8faff">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <h3 style="margin-bottom:4px"><i class="fa-solid fa-users"></i> งานประเมินพยาบาลในสังกัด</h3>
-            <p class="muted" style="margin:0">ท่านมีหน้าที่ประเมินพฤติกรรมจริยธรรมของพยาบาลประจำการในหน่วยงานที่ท่านรับผิดชอบ</p>
+      <div class="survey-grid" style="grid-template-columns:1fr 1fr;margin-top:12px;gap:14px">
+        <div class="card" style="background:#f8faff">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div>
+              <h3 style="margin-bottom:4px"><i class="fa-solid fa-users"></i> ประเมินพยาบาลในสังกัด</h3>
+              <p class="muted" style="margin:0;font-size:13px">ประเมินพฤติกรรมจริยธรรมของพยาบาลในหน่วยงาน</p>
+            </div>
+            <button class="btn small" onclick="switchDashboardTab('evaluate_dept')"><i class="fa-solid fa-arrow-right"></i> ไปประเมิน</button>
           </div>
-          <button class="btn" onclick="switchDashboardTab('evaluate_dept')"><i class="fa-solid fa-arrow-right"></i> ไปที่หน้าประเมินพยาบาล</button>
+        </div>
+        <div class="card" style="background:#f0fdf4">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div>
+              <h3 style="margin-bottom:4px"><i class="fa-solid fa-magnifying-glass-chart"></i> ตรวจสอบสถานะการประเมิน</h3>
+              <p class="muted" style="margin:0;font-size:13px">ดูภาพรวมสถานะการประเมินของบุคลากรในหน่วยงาน</p>
+            </div>
+            <button class="btn small" style="background:#059669" onclick="switchDashboardTab('inspect_units')"><i class="fa-solid fa-search"></i> ตรวจสอบ</button>
+          </div>
         </div>
       </div>
     </div>
@@ -698,6 +816,9 @@ function renderUnitHeadDashboard() {
 function renderGroupHeadDashboard() {
   if (state.dashboardTab === 'evaluate_dept') {
     return renderEvaluateDeptSubView('UNIT_HEAD', 'หัวหน้างาน / หัวหน้าหอผู้ป่วยในสังกัด');
+  }
+  if (state.dashboardTab === 'inspect_units') {
+    return renderInspectUnitsView();
   }
 
   const selfAssign = state.dashboardData?.selfAssignment;
@@ -725,13 +846,24 @@ function renderGroupHeadDashboard() {
         </div>
       </article>
 
-      <div class="card" style="margin-top:12px;background:#f8faff">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <h3 style="margin-bottom:4px"><i class="fa-solid fa-users-tie"></i> งานประเมินหัวหน้างานในสังกัด</h3>
-            <p class="muted" style="margin:0">ท่านมีหน้าที่ประเมินพฤติกรรมจริยธรรมของหัวหน้าหอผู้ป่วยในสังกัดกลุ่มงานของท่าน</p>
+      <div class="survey-grid" style="grid-template-columns:1fr 1fr;margin-top:12px;gap:14px">
+        <div class="card" style="background:#f8faff">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div>
+              <h3 style="margin-bottom:4px"><i class="fa-solid fa-users-tie"></i> ประเมินหัวหน้างานในสังกัด</h3>
+              <p class="muted" style="margin:0;font-size:13px">ประเมินพฤติกรรมจริยธรรมของหัวหน้าหอผู้ป่วยในกลุ่มงาน</p>
+            </div>
+            <button class="btn small" onclick="switchDashboardTab('evaluate_dept')"><i class="fa-solid fa-arrow-right"></i> ไปประเมิน</button>
           </div>
-          <button class="btn" onclick="switchDashboardTab('evaluate_dept')"><i class="fa-solid fa-arrow-right"></i> ไปที่หน้าประเมินหัวหน้างาน</button>
+        </div>
+        <div class="card" style="background:#f0fdf4">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div>
+              <h3 style="margin-bottom:4px"><i class="fa-solid fa-magnifying-glass-chart"></i> ตรวจสอบสถานะการประเมิน</h3>
+              <p class="muted" style="margin:0;font-size:13px">ดูภาพรวมและสถานะการประเมินของหน่วยงานในสังกัด</p>
+            </div>
+            <button class="btn small" style="background:#059669" onclick="switchDashboardTab('inspect_units')"><i class="fa-solid fa-search"></i> ตรวจสอบ</button>
+          </div>
         </div>
       </div>
     </div>
@@ -746,39 +878,43 @@ function renderHeadNurseDashboard() {
   return renderExecutiveReportsView();
 }
 
-// SubView: Department / Subordinate Evaluation Table
-function renderEvaluateDeptSubView(targetRole, title) {
+// SubView: Inspect Unit Assessment Status (for GROUP_HEAD and UNIT_HEAD)
+function renderInspectUnitsView() {
+  const role = state.user?.role || 'UNIT_HEAD';
   const tasks = state.dashboardData?.evaluateTasks || [];
   const depts = state.dashboardData?.managedDepartments || [];
+  const title = role === 'GROUP_HEAD' ? 'ตรวจสอบสถานะการประเมินของหน่วยงานในกลุ่มงาน' : 'ตรวจสอบสถานะการประเมินของบุคลากรในหน่วยงาน';
 
-  // Filter tasks
-  let filtered = tasks.filter(t => {
-    if (state.selectedDeptFilter !== 'all') {
-      const dName = t.target?.departments?.name;
-      if (dName !== state.selectedDeptFilter) return false;
+  const taskRows = tasks.map((t, idx) => {
+    const selfDone = t.target_self_status === 'COMPLETED' || t.target_self_done;
+    const otherDone = t.status === 'COMPLETED';
+    let statusLabel = '';
+    if (otherDone) {
+      statusLabel = '<span class="badge done"><i class="fa-solid fa-check-circle"></i> เสร็จสิ้น</span>';
+    } else if (selfDone) {
+      statusLabel = '<span class="badge pending" style="background:#fef3c7;color:#92400e"><i class="fa-solid fa-hourglass-half"></i> รอหัวหน้างานประเมิน</span>';
+    } else {
+      statusLabel = '<span class="badge closed"><i class="fa-solid fa-circle-xmark"></i> ยังไม่ประเมิน</span>';
     }
-    return true;
+    return `
+      <tr>
+        <td style="text-align:center">${idx + 1}</td>
+        <td><strong>${esc(t.target?.full_name || 'ไม่ระบุชื่อ')}</strong></td>
+        <td>${esc(t.target?.position || 'พยาบาลวิชาชีพ')}</td>
+        <td><i class="fa-solid fa-hospital-user text-muted"></i> ${esc(t.target?.departments?.name || 'กลุ่มการพยาบาล')}</td>
+        <td style="text-align:center">${statusLabel}</td>
+        <td style="text-align:center">
+          ${otherDone || selfDone ? `<button class="btn ghost small" onclick="viewMyReport('${t.target_user_id}')"><i class="fa-solid fa-chart-line"></i> ดูผล</button>` : '<span class="muted" style="font-size:12px">—</span>'}
+        </td>
+      </tr>
+    `;
   });
 
   return `
-    <div class="card" style="margin-bottom:20px">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-        <div>
-          <h3 style="margin:0"><i class="fa-solid fa-clipboard-user"></i> ${esc(title)}</h3>
-          <p class="muted" style="margin:4px 0 0">มีทั้งหมด ${filtered.length} รายการที่ต้องประเมิน</p>
-        </div>
-        ${depts.length > 1 ? `
-          <div style="display:flex;align-items:center;gap:8px">
-            <label style="font-size:13px;font-weight:600">กรองตามหน่วยงาน:</label>
-            <select class="select-sm" onchange="filterDeptTasks(this.value)">
-              <option value="all">ทุกหน่วยงานที่รับผิดชอบ</option>
-              ${depts.map(d => `<option value="${esc(d.name)}" ${state.selectedDeptFilter === d.name ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}
-            </select>
-          </div>
-        ` : ''}
-      </div>
+    <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <button class="btn ghost small" onclick="switchDashboardTab('my_assessment')"><i class="fa-solid fa-arrow-left"></i> กลับ</button>
+      <h3 style="margin:0"><i class="fa-solid fa-magnifying-glass-chart"></i> ${esc(title)}</h3>
     </div>
-
     <div class="table-wrap">
       <table class="table">
         <thead>
@@ -788,39 +924,15 @@ function renderEvaluateDeptSubView(targetRole, title) {
             <th>ตำแหน่ง</th>
             <th>หน่วยงาน</th>
             <th style="text-align:center">สถานะการประเมิน</th>
-            <th style="text-align:center">การกระทำ</th>
+            <th style="text-align:center">รายงาน</th>
           </tr>
         </thead>
         <tbody>
-          ${filtered.length ? filtered.map((t, idx) => {
-            const isCompleted = t.status === 'COMPLETED';
-            return `
-              <tr>
-                <td style="text-align:center">${idx + 1}</td>
-                <td><strong>${esc(t.target?.full_name || 'ไม่ระบุชื่อ')}</strong></td>
-                <td>${esc(t.target?.position || 'พยาบาลวิชาชีพ')}</td>
-                <td><i class="fa-solid fa-hospital-user text-muted"></i> ${esc(t.target?.departments?.name || 'กลุ่มการพยาบาล')}</td>
-                <td style="text-align:center">
-                  ${isCompleted 
-                    ? '<span class="badge done"><i class="fa-solid fa-check"></i> ประเมินแล้ว</span>' 
-                    : '<span class="badge pending"><i class="fa-solid fa-clock"></i> ยังไม่ประเมิน</span>'}
-                </td>
-                <td style="text-align:center">
-                  ${isCompleted ? `
-                    <button class="btn outline small" onclick="viewMyReport('${t.target_user_id}')"><i class="fa-solid fa-chart-line"></i> ดูผลประเมิน</button>
-                  ` : `
-                    <button class="btn small" onclick="startAssessment('${t.id}', '${targetRole}', 'OTHER', '${t.target_user_id}')"><i class="fa-solid fa-pen-to-square"></i> เริ่มการประเมิน</button>
-                  `}
-                </td>
-              </tr>
-            `;
-          }).join('') : `
-            <tr>
-              <td colspan="6" style="text-align:center;padding:30px" class="muted">
-                <i class="fa-solid fa-folder-open" style="font-size:32px;display:block;margin-bottom:8px"></i>
-                ไม่มีรายการบุคลากรในหน่วยงานนี้ หรือยังไม่มีการมอบหมายงาน
-              </td>
-            </tr>
+          ${taskRows.length ? taskRows.join('') : `
+            <tr><td colspan="6" style="text-align:center;padding:30px" class="muted">
+              <i class="fa-solid fa-folder-open" style="font-size:32px;display:block;margin-bottom:8px"></i>
+              ไม่มีข้อมูลบุคลากรในสังกัด
+            </td></tr>
           `}
         </tbody>
       </table>
@@ -828,186 +940,128 @@ function renderEvaluateDeptSubView(targetRole, title) {
   `;
 }
 
-function filterDeptTasks(deptName) {
-  state.selectedDeptFilter = deptName;
-  render();
+// SubView: Department / Subordinate Evaluation Table
+function renderEvaluateDeptSubView(targetRole, title) {
+  const tasks = state.dashboardData?.evaluateTasks || [];
+  
+  // Sort tasks: Incomplete by evaluator but with self assessment done come first
+  let filtered = [...tasks].sort((a, b) => {
+    const aSelfDone = (a.target_self_status === 'COMPLETED' || a.target_self_done);
+    const bSelfDone = (b.target_self_status === 'COMPLETED' || b.target_self_done);
+    if (aSelfDone && !bSelfDone) return -1;
+    if (!aSelfDone && bSelfDone) return 1;
+    return 0;
+  });
+
+  return `
+    <div class="card" style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <h3 style="margin:0"><i class="fa-solid fa-clipboard-user"></i> ${esc(title)}</h3>
+          <p class="muted" style="margin:4px 0 0">มีทั้งหมด ${filtered.length} รายการที่ต้องประเมิน</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:50px">ลำดับ</th>
+            <th>ชื่อผู้ถูกประเมิน</th>
+            <th>หน่วยงาน</th>
+            <th>สถานะ</th>
+            <th style="text-align:center">การกระทำ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.length ? filtered.map((t, idx) => {
+            const isCompleted = t.status === 'COMPLETED';
+            const isSelfDone = t.target_self_status === 'COMPLETED' || t.target_self_done;
+            const targetDept = t.target?.departments?.name || 'ไม่ระบุหน่วยงาน';
+            return `
+              <tr>
+                <td style="text-align:center">${idx + 1}</td>
+                <td><strong>${esc(t.target?.full_name || 'ไม่ระบุชื่อ')}</strong></td>
+                <td><i class="fa-solid fa-hospital-user text-muted"></i> ${esc(targetDept)}</td>
+                <td>
+                  ${isCompleted ? '<span class="badge done">เสร็จแล้ว</span>' : (isSelfDone ? '<span class="badge pending">รอประเมิน</span>' : '<span class="badge closed">ยังไม่พร้อม</span>')}
+                </td>
+                <td style="text-align:center">
+                  ${isCompleted ? `<button class="btn outline small" onclick="viewMyReport('${t.target_user_id}')"><i class="fa-solid fa-eye"></i> ดูผล</button>` : (isSelfDone ? `<button class="btn small" onclick="startAssessment('${t.id}', '${targetRole}', 'OTHER', '${t.target_user_id}')"><i class="fa-solid fa-play"></i> เริ่มประเมิน</button>` : '<button class="btn small" disabled style="opacity:0.5"><i class="fa-solid fa-lock"></i> รอ Self ก่อน</button>')}
+                </td>
+              </tr>
+            `;
+          }).join('') : '<tr><td colspan="4" style="text-align:center">ไม่มีข้อมูล</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 // ----------------------------------------------------
-// 4. ASSESSMENT FORM PAGE (survey.html / Matrix Table 1-5)
+// 4. ASSESSMENT FORM PAGE
 // ----------------------------------------------------
 async function startAssessment(assignmentId, targetRole, assessmentType, targetUserId) {
   showSkeletonLoading('กำลังเปิดแบบประเมิน...');
   try {
-    // Fetch questions from question bank based on target role
     let questions = [];
     let title = '';
-    
     if (targetRole === 'NURSE') {
-      title = assessmentType === 'SELF' 
-        ? 'แบบวัดพฤติกรรมจริยธรรมทางคลินิกของพยาบาลประจำการ (ประเมินตนเอง)'
-        : 'แบบวัดพฤติกรรมจริยธรรมทางคลินิกของพยาบาลประจำการ (ประเมินโดยหัวหน้างาน)';
       questions = ETHICS_QUESTION_BANK.nursePairs.map(p => ({
         question_id: assessmentType === 'SELF' ? p.self_q_id : p.other_q_id,
-        question_pair_id: p.pair_id,
-        question_order: p.order,
-        question_text: assessmentType === 'SELF' ? p.self_text : p.other_text
-      }));
-    } else if (targetRole === 'UNIT_HEAD') {
-      title = assessmentType === 'SELF'
-        ? 'แบบวัดพฤติกรรมจริยธรรมในการบริหารงานของหัวหน้าหอผู้ป่วย (ประเมินตนเอง)'
-        : 'แบบวัดพฤติกรรมจริยธรรมในการบริหารงานของหัวหน้าหอผู้ป่วย (ประเมินโดยหัวหน้ากลุ่มงาน)';
-      questions = ETHICS_QUESTION_BANK.unitHeadPairs.map(p => ({
-        question_id: assessmentType === 'SELF' ? p.self_q_id : p.other_q_id,
-        question_pair_id: p.pair_id,
-        question_order: p.order,
         question_text: assessmentType === 'SELF' ? p.self_text : p.other_text
       }));
     } else {
-      title = assessmentType === 'SELF'
-        ? 'แบบวัดพฤติกรรมจริยธรรมในการบริหารงานของหัวหน้ากลุ่มงาน (ประเมินตนเอง)'
-        : 'แบบวัดพฤติกรรมจริยธรรมในการบริหารงานของหัวหน้ากลุ่มงาน (ประเมินโดยหัวหน้าพยาบาล)';
-      questions = ETHICS_QUESTION_BANK.groupHeadPairs.map(p => ({
+      questions = ETHICS_QUESTION_BANK.unitHeadPairs.map(p => ({
         question_id: assessmentType === 'SELF' ? p.self_q_id : p.other_q_id,
-        question_pair_id: p.pair_id,
-        question_order: p.order,
         question_text: assessmentType === 'SELF' ? p.self_text : p.other_text
       }));
     }
-
-    // Target user info
-    let targetUser = state.user;
-    if (assessmentType === 'OTHER' && targetUserId) {
-      const foundTarget = state.dashboardData?.evaluateTasks?.find(t => t.target_user_id === targetUserId)?.target;
-      if (foundTarget) targetUser = foundTarget;
-    }
-
-    state.currentAssessment = {
-      assignment_id: assignmentId,
-      targetRole,
-      assessmentType,
-      title,
-      targetUser,
-      questions
-    };
-    
-    // Load saved draft answers from localStorage
-    const storageKey = `np_ethics_answers_${state.user.id}_${assignmentId}`;
-    state.answers = JSON.parse(localStorage.getItem(storageKey) || '{}');
-
-    hideSkeletonLoading();
+    state.currentAssessment = { assignment_id, targetRole, assessmentType, questions };
+    state.answers = JSON.parse(localStorage.getItem(`np_ethics_answers_${state.user.id}_${assignmentId}`) || '{}');
     state.currentPage = 'survey';
+    hideSkeletonLoading();
     render();
   } catch (e) {
     hideSkeletonLoading();
     toast('ไม่สามารถโหลดแบบประเมินได้');
-    console.error(e);
   }
 }
 
 function renderSurveyPage() {
-  if (!state.currentAssessment) {
-    navTo('dashboard.html');
-    return;
-  }
-
   const curr = state.currentAssessment;
-  const answeredCount = Object.keys(state.answers).length;
-  const totalCount = curr.questions.length;
-  const progressPct = totalCount > 0 ? Math.round((answeredCount / totalCount) * 100) : 0;
-
-  app.innerHTML = shell(`
+  const surveyContent = `
     <div class="assessment-sticky-bar">
-      <div>
-        <a href="dashboard.html" class="btn ghost small" style="text-decoration:none">
-          <i class="fa-solid fa-arrow-left"></i> กลับหน้าหลัก
-        </a>
-      </div>
-      <div style="flex:1;max-width:400px;margin:0 18px">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-          <span>ความคืบหน้า: <strong>${answeredCount} / ${totalCount} ข้อ</strong></span>
-          <span><strong>${progressPct}%</strong></span>
-        </div>
-        <div class="progress-line" style="margin:0;height:8px"><span style="width:${progressPct}%"></span></div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn outline small" onclick="saveAssessmentDraft()"><i class="fa-solid fa-floppy-disk"></i> บันทึกร่าง</button>
-        <button class="btn small" onclick="submitAssessmentAnswers()"><i class="fa-solid fa-paper-plane"></i> ยืนยันส่งผลการประเมิน</button>
-      </div>
+      <button class="btn ghost small" onclick="navTo('dashboard.html')"><i class="fa-solid fa-arrow-left"></i> กลับ</button>
+      <div style="flex:1;text-align:center"><strong>แบบประเมินพฤติกรรมจริยธรรม</strong></div>
+      <button class="btn small" onclick="submitAssessmentAnswers()"><i class="fa-solid fa-paper-plane"></i> ยืนยัน</button>
     </div>
-
     <div class="container assessment-container">
-      <div class="card" style="margin-bottom:20px;border-left:5px solid var(--brand)">
-        <div class="eyebrow"><i class="fa-solid fa-clipboard-check"></i> ${curr.assessmentType === 'SELF' ? 'การประเมินตนเอง (Self)' : 'การประเมินโดยผู้อื่น (Other)'}</div>
-        <h2 style="margin:4px 0 10px">${esc(curr.title)}</h2>
-        
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:12px;background:#f8faff;padding:14px;border-radius:12px;border:1px solid var(--line);font-size:14px">
-          <div><span class="muted">ผู้ถูกประเมิน:</span> <strong>${esc(curr.targetUser?.full_name || curr.targetUser?.name)}</strong></div>
-          <div><span class="muted">ตำแหน่ง:</span> ${esc(curr.targetUser?.position || 'พยาบาลวิชาชีพ')}</div>
-          <div><span class="muted">หน่วยงาน:</span> ${esc(curr.targetUser?.departments?.name || curr.targetUser?.department || 'กลุ่มการพยาบาล')}</div>
-          <div><span class="muted">รอบการประเมิน:</span> ${esc(state.activePeriod.name)}</div>
-        </div>
-
-        <div class="notice" style="margin-top:14px;background:#f4f7ff;border:1px solid #bfdbfe;color:#1e3a8a">
-          <strong><i class="fa-solid fa-circle-info"></i> คำชี้แจงการให้คะแนน (Rating Scale 1–5):</strong><br>
-          1 = น้อยที่สุด &nbsp;|&nbsp; 2 = น้อย &nbsp;|&nbsp; 3 = ปานกลาง &nbsp;|&nbsp; 4 = มาก &nbsp;|&nbsp; 5 = มากที่สุด (กรุณาเลือก 1 ค่าในแต่ละข้อคำถาม)
-        </div>
-      </div>
-
-      <!-- Assessment Matrix Table -->
-      <div class="matrix-table-wrap">
-        <table class="matrix-table">
-          <thead>
-            <tr>
-              <th class="th-question">ข้อคำถามพฤติกรรมจริยธรรม</th>
-              <th class="th-scale">1<br><small style="font-weight:normal;font-size:11px">น้อยสุด</small></th>
-              <th class="th-scale">2<br><small style="font-weight:normal;font-size:11px">น้อย</small></th>
-              <th class="th-scale">3<br><small style="font-weight:normal;font-size:11px">ปานกลาง</small></th>
-              <th class="th-scale">4<br><small style="font-weight:normal;font-size:11px">มาก</small></th>
-              <th class="th-scale">5<br><small style="font-weight:normal;font-size:11px">มากสุด</small></th>
+      <table class="matrix-table">
+        <tbody>
+          ${curr.questions.map((q, idx) => `
+            <tr id="row_q_${q.question_id}">
+              <td>${idx + 1}. ${esc(q.question_text)}</td>
+              ${[1,2,3,4,5].map(s => `<td><input type="radio" name="ans_${q.question_id}" value="${s}" ${state.answers[q.question_id] == s ? 'checked' : ''} onchange="setAnswer('${q.question_id}', ${s})"></td>`).join('')}
             </tr>
-          </thead>
-          <tbody>
-            ${curr.questions.map((q, idx) => {
-              const currentScore = state.answers[q.question_id];
-              return `
-                <tr id="row_q_${q.question_id}">
-                  <td class="td-question">
-                    <strong>${idx + 1}.</strong> ${esc(q.question_text)}
-                  </td>
-                  ${[1, 2, 3, 4, 5].map(scoreVal => `
-                    <td class="td-scale">
-                      <label class="matrix-radio-label">
-                        <input type="radio" 
-                               name="ans_${q.question_id}" 
-                               value="${scoreVal}" 
-                               ${currentScore === scoreVal ? 'checked' : ''} 
-                               onchange="setAnswer('${q.question_id}', ${scoreVal})">
-                      </label>
-                    </td>
-                  `).join('')}
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-
+          `).join('')}
+        </tbody>
+      </table>
       <div class="footer-actions" style="margin-bottom:40px">
         <a href="dashboard.html" class="btn outline" style="text-decoration:none"><i class="fa-solid fa-arrow-left"></i> ยกเลิก / กลับหน้าหลัก</a>
         <button class="btn outline" onclick="saveAssessmentDraft()"><i class="fa-solid fa-floppy-disk"></i> บันทึกร่าง</button>
         <button class="btn" onclick="submitAssessmentAnswers()"><i class="fa-solid fa-paper-plane"></i> ยืนยันส่งผลการประเมิน</button>
       </div>
     </div>
-  `);
+  `;
+  app.innerHTML = `<div class="app-layout">${renderAppSidebar(state.dashboardTab || 'my_assessment')}<main class="app-main">${surveyContent}</main></div>`;
 }
 
 function setAnswer(qId, score) {
   state.answers[qId] = score;
   const storageKey = `np_ethics_answers_${state.user.id}_${state.currentAssessment.assignment_id}`;
   localStorage.setItem(storageKey, JSON.stringify(state.answers));
-  
-  // Un-highlight warning row if selected
   document.querySelector(`#row_q_${qId}`)?.classList.remove('unanswered');
 }
 
@@ -1528,8 +1582,8 @@ function renderAdmin() {
   let tabContent = '';
   if (state.adminTab === 'users') tabContent = renderAdminUsersTab();
   else if (state.adminTab === 'templates') tabContent = state.adminTemplateView ? renderAdminTemplateDetail(state.adminTemplateView) : renderAdminTemplatesTab();
-  else if (state.adminTab === 'periods') tabContent = renderAdminPeriodsTab();
-  else tabContent = renderExecutiveReportsView();
+  else if (state.adminTab === 'reports') tabContent = renderExecutiveReportsView();
+  else tabContent = renderAdminDashboardTab(); // default: 'dashboard'
 
   app.innerHTML = `
     <div class="app-layout">
@@ -1563,7 +1617,94 @@ function setAdminTab(tab) {
   state.adminTemplateView = null;
   render();
   if (tab === 'users' && !state.adminUsers.length) fetchAdminUsers();
-  if (tab === 'periods') fetchAdminPeriods();
+  if (tab === 'reports' && !state.executiveData) loadExecutiveData();
+}
+
+// Admin Dashboard Tab (KPI overview)
+function renderAdminDashboardTab() {
+  // Trigger data load if not available
+  if (!state.executiveData) {
+    loadExecutiveData();
+  }
+  const exec = state.executiveData;
+  const totalPeople = exec ? exec.roleSummary.reduce((acc, r) => acc + r.total_users, 0) : 0;
+  const totalSelf = exec ? exec.roleSummary.reduce((acc, r) => acc + r.self_completed, 0) : 0;
+  const totalOther = exec ? exec.roleSummary.reduce((acc, r) => acc + r.other_completed, 0) : 0;
+  const responseRate = totalPeople > 0 ? Math.round((totalSelf / totalPeople) * 100) : 0;
+
+  if (!exec) {
+    return '<div class="empty">กำลังโหลดข้อมูล...</div>';
+  }
+
+  return `
+    <h3 style="margin-bottom:18px"><i class="fa-solid fa-gauge-high"></i> แดชบอร์ดภาพรวมระบบการประเมิน</h3>
+
+    <div class="admin-stat">
+      <div class="stat">
+        <span class="muted">บุคลากรทั้งหมด</span>
+        <strong>${totalPeople} คน</strong>
+        <small class="muted">กลุ่มการพยาบาล รพร.สว่างแดนดิน</small>
+      </div>
+      <div class="stat">
+        <span class="muted">ประเมินตนเองแล้ว</span>
+        <strong style="color:#2563eb">${totalSelf} คน</strong>
+        <small class="muted">คิดเป็น ${responseRate}% ของทั้งหมด</small>
+      </div>
+      <div class="stat">
+        <span class="muted">หัวหน้าประเมินแล้ว</span>
+        <strong style="color:#059669">${totalOther} คน</strong>
+        <small class="muted">ประเมิน Other เสร็จแล้ว</small>
+      </div>
+      <div class="stat">
+        <span class="muted">อัตราความสำเร็จ</span>
+        <strong style="color:#7c3aed">${responseRate}%</strong>
+        <small class="muted">Self Assessment</small>
+      </div>
+    </div>
+
+    <div class="card" style="margin:20px 0">
+      <h3 style="margin-bottom:12px"><i class="fa-solid fa-chart-bar"></i> ความคืบหน้าแยกตามบทบาท</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>บทบาท</th>
+              <th style="text-align:center">จำนวน</th>
+              <th style="text-align:center">Self เสร็จ</th>
+              <th style="text-align:center">Other เสร็จ</th>
+              <th style="text-align:center">% Self</th>
+              <th style="text-align:center">ค่าเฉลี่ย Self</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${exec.roleSummary.map(r => `
+              <tr>
+                <td><strong>${esc(r.role_label)}</strong></td>
+                <td style="text-align:center">${r.total_users}</td>
+                <td style="text-align:center">${r.self_completed}</td>
+                <td style="text-align:center">${r.other_completed}</td>
+                <td style="text-align:center">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <div style="flex:1;background:#e5e7eb;border-radius:4px;height:8px">
+                      <div style="width:${r.total_users > 0 ? Math.round(r.self_completed/r.total_users*100) : 0}%;background:#2563eb;height:8px;border-radius:4px"></div>
+                    </div>
+                    <span style="font-size:12px;min-width:32px">${r.total_users > 0 ? Math.round(r.self_completed/r.total_users*100) : 0}%</span>
+                  </div>
+                </td>
+                <td style="text-align:center;font-weight:700;color:#1d4ed8">${r.self_avg !== null ? r.self_avg.toFixed(2) : '—'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" onclick="setAdminTab('reports')"><i class="fa-solid fa-chart-pie"></i> ดูรายงานละเอียด</button>
+      <button class="btn outline" onclick="setAdminTab('users')"><i class="fa-solid fa-users"></i> จัดการบุคลากร</button>
+      <button class="btn outline" onclick="exportSummaryExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+    </div>
+  `;
 }
 
 async function fetchAdminPeriods() {
@@ -1783,27 +1924,7 @@ async function deleteAdminUser(id) {
 // Alias for backward compat
 function showAddUserModal() { showAdminUserForm(null); }
 
-function renderAdminTemplatesTab() {
-  return `
-    <div class="survey-grid">
-      <div class="card">
-        <h3><i class="fa-solid fa-file-signature"></i> แบบประเมินพยาบาลประจำการ (Clinical Ethics)</h3>
-        <p class="muted">ชุดคำถามประเมินพฤติกรรมจริยธรรมทางคลินิก 64 ข้อ (Self & Other จับคู่ด้วย QuestionPair QP-NURSE-01 ถึง 64)</p>
-        <span class="badge done">Version 1 (Active)</span>
-      </div>
-      <div class="card">
-        <h3><i class="fa-solid fa-file-signature"></i> แบบประเมินหัวหน้าหอผู้ป่วย (Administrative Ethics)</h3>
-        <p class="muted">ชุดคำถามประเมินพฤติกรรมจริยธรรมในการบริหารงาน 65 ข้อ (จับคู่ด้วย QuestionPair QP-UNITHEAD-01 ถึง 65)</p>
-        <span class="badge done">Version 1 (Active)</span>
-      </div>
-      <div class="card">
-        <h3><i class="fa-solid fa-file-signature"></i> แบบประเมินหัวหน้ากลุ่มงาน</h3>
-        <p class="muted">ชุดคำถามประเมินพฤติกรรมจริยธรรมในการบริหารระดับกลุ่มงาน 30 ข้อ (จับคู่ด้วย QuestionPair QP-GROUPHEAD-01 ถึง 30)</p>
-        <span class="badge done">Version 1 (Active)</span>
-      </div>
-    </div>
-  `;
-}
+// renderAdminTemplatesTab removed to prevent overriding the correct function defined at the top
 
 // ----------------------------------------------------
 // UTILITIES, MODALS, AUTH
