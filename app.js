@@ -1397,16 +1397,39 @@ function renderSurveyPage() {
       <button class="btn small" onclick="submitAssessmentAnswers()"><i class="fa-solid fa-paper-plane"></i> ยืนยัน</button>
     </div>
     <div class="container assessment-container">
-      <table class="matrix-table">
-        <tbody>
-          ${curr.questions.map((q, idx) => `
-            <tr id="row_q_${q.question_id}">
-              <td>${idx + 1}. ${esc(q.question_text)}</td>
-              ${[1,2,3,4,5].map(s => `<td><input type="radio" name="ans_${q.question_id}" value="${s}" ${state.answers[q.question_id] == s ? 'checked' : ''} onchange="setAnswer('${q.question_id}', ${s})"></td>`).join('')}
+      <div class="card notice" style="margin-bottom:18px">
+        <strong><i class="fa-solid fa-circle-info"></i> คำชี้แจง</strong>
+        <p style="margin:8px 0 12px">โปรดพิจารณาข้อความแต่ละข้อ แล้วเลือกระดับคะแนนที่ตรงกับพฤติกรรมตามความเป็นจริงมากที่สุด เพียง 1 ระดับต่อ 1 ข้อ คำตอบของท่านจะถูกเก็บเป็นความลับและนำไปใช้เพื่อการพัฒนาคุณภาพเท่านั้น</p>
+        <div class="scale-legend">
+          <span><b>1</b> น้อยที่สุด</span>
+          <span><b>2</b> น้อย</span>
+          <span><b>3</b> ปานกลาง</span>
+          <span><b>4</b> มาก</span>
+          <span><b>5</b> มากที่สุด</span>
+        </div>
+      </div>
+      <div class="matrix-table-wrap">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th class="th-question">รายการประเมิน</th>
+              <th class="th-scale">1<br><span style="font-weight:400;font-size:11px">น้อยที่สุด</span></th>
+              <th class="th-scale">2<br><span style="font-weight:400;font-size:11px">น้อย</span></th>
+              <th class="th-scale">3<br><span style="font-weight:400;font-size:11px">ปานกลาง</span></th>
+              <th class="th-scale">4<br><span style="font-weight:400;font-size:11px">มาก</span></th>
+              <th class="th-scale">5<br><span style="font-weight:400;font-size:11px">มากที่สุด</span></th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${curr.questions.map((q, idx) => `
+              <tr id="row_q_${q.question_id}">
+                <td class="td-question">${idx + 1}. ${esc(q.question_text)}</td>
+                ${[1,2,3,4,5].map(s => `<td class="td-scale"><label class="matrix-radio-label"><input type="radio" name="ans_${q.question_id}" value="${s}" ${state.answers[q.question_id] == s ? 'checked' : ''} onchange="setAnswer('${q.question_id}', ${s})"></label></td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
       <div class="footer-actions" style="margin-bottom:40px">
         <a href="dashboard.html" class="btn outline" style="text-decoration:none"><i class="fa-solid fa-arrow-left"></i> ยกเลิก / กลับหน้าหลัก</a>
         <button class="btn outline" onclick="saveAssessmentDraft()"><i class="fa-solid fa-floppy-disk"></i> บันทึกร่าง</button>
