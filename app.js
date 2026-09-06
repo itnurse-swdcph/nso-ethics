@@ -1352,20 +1352,32 @@ function renderEvaluateDeptSubView(targetRole, title) {
 async function startAssessment(assignmentId, targetRole, assessmentType, targetUserId) {
   showSkeletonLoading('กำลังเปิดแบบประเมิน...');
   try {
-    let questions = [];
-    let title = '';
+    let pairs = [];
     if (targetRole === 'NURSE') {
-      questions = ETHICS_QUESTION_BANK.nursePairs.map(p => ({
-        question_id: assessmentType === 'SELF' ? p.self_q_id : p.other_q_id,
-        question_text: assessmentType === 'SELF' ? p.self_text : p.other_text
-      }));
+      pairs = ETHICS_QUESTION_BANK.nursePairs;
+    } else if (targetRole === 'UNIT_HEAD') {
+      pairs = ETHICS_QUESTION_BANK.unitHeadPairs;
+    } else if (targetRole === 'GROUP_HEAD') {
+      pairs = ETHICS_QUESTION_BANK.groupHeadPairs;
     } else {
-      questions = ETHICS_QUESTION_BANK.unitHeadPairs.map(p => ({
-        question_id: assessmentType === 'SELF' ? p.self_q_id : p.other_q_id,
-        question_text: assessmentType === 'SELF' ? p.self_text : p.other_text
-      }));
+      pairs = ETHICS_QUESTION_BANK.unitHeadPairs;
     }
-    state.currentAssessment = { assignment_id, targetRole, assessmentType, questions };
+    const questions = pairs.map(p => ({
+      question_id: assessmentType === 'SELF' ? p.self_q_id : p.other_q_id,
+      question_text: assessmentType === 'SELF' ? p.self_text : p.other_text,
+      question_pair_id: p.pair_id,
+      question_order: p.order
+    }));
+
+    let targetUser;
+    if (assessmentType === 'SELF') {
+      targetUser = { id: state.user.id, name: state.user.name };
+    } else {
+      const task = (state.dashboardData?.evaluateTasks || []).find(t => t.target_user_id === targetUserId);
+      targetUser = { id: targetUserId, name: task?.target?.full_name || 'ไม่ระบุชื่อ' };
+    }
+
+    state.currentAssessment = { assignment_id: assignmentId, targetRole, assessmentType, questions, targetUser };
     state.answers = JSON.parse(localStorage.getItem(`np_ethics_answers_${state.user.id}_${assignmentId}`) || '{}');
     state.currentPage = 'survey';
     hideSkeletonLoading();
