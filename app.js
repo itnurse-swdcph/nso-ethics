@@ -1423,15 +1423,20 @@ function renderSurveyPage() {
       <button class="btn small" onclick="submitAssessmentAnswers()"><i class="fa-solid fa-paper-plane"></i> ยืนยัน</button>
     </div>
     <div class="container assessment-container">
-      <div class="card notice" style="margin-bottom:18px">
-        <strong><i class="fa-solid fa-circle-info"></i> คำชี้แจง</strong>
-        <p style="margin:8px 0 12px">โปรดพิจารณาข้อความแต่ละข้อ แล้วเลือกระดับคะแนนที่ตรงกับพฤติกรรมตามความเป็นจริงมากที่สุด เพียง 1 ระดับต่อ 1 ข้อ คำตอบของท่านจะถูกเก็บเป็นความลับและนำไปใช้เพื่อการพัฒนาคุณภาพเท่านั้น</p>
-        <div class="scale-legend">
-          <span><b>1</b> น้อยที่สุด</span>
-          <span><b>2</b> น้อย</span>
-          <span><b>3</b> ปานกลาง</span>
-          <span><b>4</b> มาก</span>
-          <span><b>5</b> มากที่สุด</span>
+      <div class="card notice notice-collapsible" id="assessmentNotice">
+        <button type="button" class="notice-toggle" onclick="document.getElementById('assessmentNotice').classList.toggle('expanded')">
+          <span><i class="fa-solid fa-circle-info"></i> คำชี้แจง (แตะเพื่อดู)</span>
+          <i class="fa-solid fa-chevron-down notice-caret"></i>
+        </button>
+        <div class="notice-body">
+          <p style="margin:8px 0 12px">โปรดพิจารณาข้อความแต่ละข้อ แล้วเลือกระดับคะแนนที่ตรงกับพฤติกรรมตามความเป็นจริงมากที่สุด เพียง 1 ระดับต่อ 1 ข้อ คำตอบของท่านจะถูกเก็บเป็นความลับและนำไปใช้เพื่อการพัฒนาคุณภาพเท่านั้น</p>
+          <div class="scale-legend">
+            <span><b>1</b> น้อยที่สุด</span>
+            <span><b>2</b> น้อย</span>
+            <span><b>3</b> ปานกลาง</span>
+            <span><b>4</b> มาก</span>
+            <span><b>5</b> มากที่สุด</span>
+          </div>
         </div>
       </div>
       <div class="matrix-table-wrap">

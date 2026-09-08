@@ -311,6 +311,14 @@
   .assessment-sticky-bar > div { font-size: 14px; }
   .matrix-table thead th { padding: 8px 6px; font-size: 12px; }
   .matrix-table thead th span { display: none; } /* hide "น้อยที่สุด" etc., keep just the number */
+
+  /* Collapse the instructions card down to one line by default on mobile —
+     it was eating enough vertical space that question 1 could never be
+     scrolled to a position clear of the sticky bar + table header. */
+  .notice-collapsible { padding: 10px 14px; }
+  .notice-toggle { display: flex; }
+  .notice-collapsible .notice-body { display: none; }
+  .notice-collapsible.expanded .notice-body { display: block; }
 }
 
 
