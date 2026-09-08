@@ -1439,27 +1439,15 @@ function renderSurveyPage() {
           </div>
         </div>
       </div>
-      <div class="matrix-table-wrap">
-        <table class="matrix-table">
-          <thead>
-            <tr>
-              <th class="th-question">รายการประเมิน</th>
-              <th class="th-scale">1<br><span style="font-weight:400;font-size:11px">น้อยที่สุด</span></th>
-              <th class="th-scale">2<br><span style="font-weight:400;font-size:11px">น้อย</span></th>
-              <th class="th-scale">3<br><span style="font-weight:400;font-size:11px">ปานกลาง</span></th>
-              <th class="th-scale">4<br><span style="font-weight:400;font-size:11px">มาก</span></th>
-              <th class="th-scale">5<br><span style="font-weight:400;font-size:11px">มากที่สุด</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            ${curr.questions.map((q, idx) => `
-              <tr id="row_q_${q.question_id}">
-                <td class="td-question">${idx + 1}. ${esc(q.question_text)}</td>
-                ${[1,2,3,4,5].map(s => `<td class="td-scale"><label class="matrix-radio-label"><input type="radio" name="ans_${q.question_id}" value="${s}" ${state.answers[q.question_id] == s ? 'checked' : ''} onchange="setAnswer('${q.question_id}', ${s})"></label></td>`).join('')}
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+      <div class="assess-list">
+        ${curr.questions.map((q, idx) => `
+          <div class="assess-item" id="row_q_${q.question_id}">
+            <div class="assess-item-text"><b>${idx + 1}.</b> ${esc(q.question_text)}</div>
+            <div class="score-picker" id="picker_q_${q.question_id}">
+              ${[1,2,3,4,5].map(s => `<button type="button" class="score-btn${state.answers[q.question_id] == s ? ' selected' : ''}" data-score="${s}" onclick="setAnswer('${q.question_id}', ${s})">${s}</button>`).join('')}
+            </div>
+          </div>
+        `).join('')}
       </div>
       <div class="footer-actions" style="margin-bottom:40px">
         <a href="dashboard.html" class="btn outline" style="text-decoration:none"><i class="fa-solid fa-arrow-left"></i> ยกเลิก / กลับหน้าหลัก</a>

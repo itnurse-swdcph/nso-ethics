@@ -302,23 +302,21 @@
   .topbar{padding:0 18px;height:63px}.brand-logo{width:38px;height:38px}.sidebar .nav-label{display:none}.upload-guide{display:block}.guide-steps{margin:14px 0;overflow:auto}.users-card .search-field{max-width:none}
 
   /* Assessment page on mobile: clear the fixed hamburger button (top:14px,
-     left:14px, 42x42) so it no longer overlaps the "กลับ" button, and shrink
-     the sticky bar + table header so less of question 1 ends up hidden
-     underneath them once the page scrolls. --assessment-bar-h drives both
-     .assessment-sticky-bar and .matrix-table thead automatically. */
+     left:14px, 42x42) so it no longer overlaps the "กลับ" button.
+     --assessment-bar-h drives both .assessment-sticky-bar and
+     .notice-collapsible's sticky offset automatically. */
   :root { --assessment-bar-h: 48px; }
   .assessment-sticky-bar { padding: 6px 14px 6px 64px; gap: 8px; }
   .assessment-sticky-bar > div { font-size: 14px; }
-  .matrix-table thead th { padding: 8px 6px; font-size: 12px; }
-  .matrix-table thead th span { display: none; } /* hide "น้อยที่สุด" etc., keep just the number */
 
-  /* Collapse the instructions card down to one line by default on mobile —
-     it was eating enough vertical space that question 1 could never be
-     scrolled to a position clear of the sticky bar + table header. */
+  /* Collapse the instructions card down to one line by default on mobile. */
   .notice-collapsible { padding: 10px 14px; }
-  .notice-toggle { display: flex; }
-  .notice-collapsible .notice-body { display: none; }
-  .notice-collapsible.expanded .notice-body { display: block; }
+
+  /* Bigger, easier-to-tap score buttons on mobile — this is now the primary
+     input method (no more small radio circles inside a cramped table). */
+  .assess-item { padding: 14px 14px 16px; }
+  .score-picker { gap: 6px; }
+  .score-btn { min-height: 56px; font-size: 19px; border-radius: 14px; }
 }
 
 
@@ -401,106 +399,6 @@ h1,h2,h3{color:#102a74}.hero-card,.card,.survey-card,.sidebar{border-color:#d7e0
 .assessment-container {
   max-width: 1100px;
   margin: 0 auto;
-}
-
-.matrix-table-wrap {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(23, 69, 168, 0.06);
-  overflow-x: auto;
-  position: relative;
-  margin: 18px 0;
-}
-
-.matrix-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 14.5px;
-}
-
-/* Sticky Header — sits directly below .assessment-sticky-bar, using the same
-   height variable so the two can never drift out of sync again. */
-.matrix-table thead th {
-  position: sticky;
-  top: var(--assessment-bar-h, 62px);
-  background: #f4f7ff;
-  color: var(--navy);
-  font-weight: 700;
-  padding: 14px 12px;
-  border-bottom: 2px solid var(--line);
-  z-index: 4;
-  text-align: center;
-}
-
-.matrix-table thead th.th-question {
-  text-align: left;
-  min-width: 320px;
-  width: 60%;
-  padding-left: 20px;
-}
-
-.matrix-table thead th.th-scale {
-  width: 8%;
-  min-width: 54px;
-}
-
-.matrix-table tbody tr {
-  transition: background 0.15s ease;
-}
-
-.matrix-table tbody tr:nth-child(even) {
-  background: #fafcff;
-}
-
-.matrix-table tbody tr:hover {
-  background: #edf3ff;
-}
-
-.matrix-table tbody tr.unanswered {
-  background: #fff8f8 !important;
-  border-left: 4px solid var(--danger);
-}
-
-.matrix-table tbody td {
-  padding: 13px 12px;
-  border-bottom: 1px solid var(--line);
-  vertical-align: middle;
-}
-
-.matrix-table tbody td.td-question {
-  padding-left: 20px;
-  line-height: 1.6;
-  color: var(--ink);
-}
-
-.matrix-table tbody td.td-scale {
-  text-align: center;
-}
-
-/* Radio Button in Matrix */
-.matrix-radio-label {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-
-.matrix-radio-label:hover {
-  background: #dbe6fe;
-}
-
-.matrix-radio-label input[type="radio"] {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  accent-color: var(--brand);
 }
 
 /* Sticky Progress Floating Header */
