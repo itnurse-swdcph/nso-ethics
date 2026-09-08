@@ -400,10 +400,11 @@ h1,h2,h3{color:#102a74}.hero-card,.card,.survey-card,.sidebar{border-color:#d7e0
   font-size: 14.5px;
 }
 
-/* Sticky Header */
+/* Sticky Header — sits directly below .assessment-sticky-bar, using the same
+   height variable so the two can never drift out of sync again. */
 .matrix-table thead th {
   position: sticky;
-  top: 72px; /* Topbar offset */
+  top: var(--assessment-bar-h, 62px);
   background: #f4f7ff;
   color: var(--navy);
   font-weight: 700;
@@ -485,7 +486,8 @@ h1,h2,h3{color:#102a74}.hero-card,.card,.survey-card,.sidebar{border-color:#d7e0
 /* Sticky Progress Floating Header */
 .assessment-sticky-bar {
   position: sticky;
-  top: 72px;
+  top: 0; /* This page has no .topbar above it (uses .app-layout, not shell()) */
+  min-height: var(--assessment-bar-h, 62px);
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line);
