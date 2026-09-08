@@ -300,7 +300,19 @@
   .app-sidebar.collapsed .sidebar-toggle { display: none; }
   .app-main { margin-left: 0 !important; padding-top: 64px; }
   .topbar{padding:0 18px;height:63px}.brand-logo{width:38px;height:38px}.sidebar .nav-label{display:none}.upload-guide{display:block}.guide-steps{margin:14px 0;overflow:auto}.users-card .search-field{max-width:none}
+
+  /* Assessment page on mobile: clear the fixed hamburger button (top:14px,
+     left:14px, 42x42) so it no longer overlaps the "กลับ" button, and shrink
+     the sticky bar + table header so less of question 1 ends up hidden
+     underneath them once the page scrolls. --assessment-bar-h drives both
+     .assessment-sticky-bar and .matrix-table thead automatically. */
+  :root { --assessment-bar-h: 48px; }
+  .assessment-sticky-bar { padding: 6px 14px 6px 64px; gap: 8px; }
+  .assessment-sticky-bar > div { font-size: 14px; }
+  .matrix-table thead th { padding: 8px 6px; font-size: 12px; }
+  .matrix-table thead th span { display: none; } /* hide "น้อยที่สุด" etc., keep just the number */
 }
+
 
 /* Blue · indigo · white visual system */
 :root{--brand:#1745a8;--navy:#0d2467;--sky:#eaf0ff;--ink:#12224a;--muted:#455577;--line:#d5dff5;--bg:#f5f7ff;--good:#147a63;--warn:#a7680a}
