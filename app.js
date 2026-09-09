@@ -392,11 +392,11 @@ function renderLogin() {
         <div class="eyebrow"><i class="fa-solid fa-hospital-user"></i> เข้าสู่ระบบการประเมินจริยธรรมวิชาชีพ</div>
         <h2>ค้นหาชื่อบุคลากร</h2>
         <p class="muted">พิมพ์ชื่อหรือนามสกุลของท่านเพื่อค้นหาในฐานข้อมูล</p>
-        <div class="field">
+        <div class="field search-highlight">
           <label>ชื่อ-นามสกุล</label>
           <div style="position:relative">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input id="userSearch" oninput="findUsers()" placeholder="พิมพ์ชื่อ เช่น อลิษา, กนกเพชร, จิราวรรณ..." autocomplete="off" style="padding-left:34px;width:100%" />
+            <input id="userSearch" oninput="findUsers()" placeholder="พิมพ์ชื่อ เช่น อลิษา, กนกเพชร, จิราวรรณ..." autocomplete="off" style="padding-left:44px;width:100%" />
           </div>
         </div>
         <div id="searchResults" class="survey-grid"></div>
