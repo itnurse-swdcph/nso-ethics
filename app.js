@@ -495,7 +495,19 @@ async function enterUser(id) {
 }
 
 
-function showRegister() {
+async function showRegister() {
+  let deptFieldHtml = `<input id="newDept" placeholder="เช่น งานการพยาบาลผู้ป่วยนอก"/>`;
+  if (cloudEnabled()) {
+    try {
+      const depts = await api('list_departments');
+      if (depts && depts.length) {
+        deptFieldHtml = `<select id="newDept"><option value="">-- เลือกหน่วยงาน --</option>${depts.map(d => `<option value="${esc(d.name)}">${esc(d.name)}</option>`).join('')}</select>`;
+      }
+    } catch (e) {
+      console.warn('list_departments failed, falling back to free-text field:', e);
+    }
+  }
+
   modal(
     'เพิ่มข้อมูลบุคลากร',
     `
@@ -506,7 +518,7 @@ function showRegister() {
       <option value="UNIT_HEAD">หัวหน้างาน / หัวหน้าหอผู้ป่วย</option>
       <option value="GROUP_HEAD">หัวหน้ากลุ่มงาน</option>
     </select></div>
-    <div class="field"><label>หน่วยงาน / หอผู้ป่วย *</label><input id="newDept" placeholder="เช่น งานการพยาบาลผู้ป่วยนอก"/></div>
+    <div class="field"><label>หน่วยงาน / หอผู้ป่วย *</label>${deptFieldHtml}</div>
   `,
     `<button class="btn" onclick="registerUser()"><i class="fa-solid fa-check"></i> บันทึกและเข้าสู่ระบบ</button>`
   );
