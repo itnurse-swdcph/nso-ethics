@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -19,6 +19,63 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # Apply the frontend fix for immediate score selection in the assessment form.
+      - name: Fix assessment score selection UI
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("app.js")
+          text = path.read_text(encoding="utf-8")
+          old = '''function setAnswer(qId, score) {
+            state.answers[qId] = score;
+            const storageKey = `np_ethics_answers_${state.user.id}_${state.currentAssessment.assignment_id}`;
+            localStorage.setItem(storageKey, JSON.stringify(state.answers));
+            document.querySelector(`#row_q_${qId}`)?.classList.remove('unanswered');
+          }'''
+          new = '''function setAnswer(qId, score) {
+            state.answers[qId] = score;
+
+            const storageKey =
+              `np_ethics_answers_${state.user.id}_${state.currentAssessment.assignment_id}`;
+
+            localStorage.setItem(
+              storageKey,
+              JSON.stringify(state.answers)
+            );
+
+            // อัปเดตปุ่มคะแนนทันที โดยไม่ render หน้าทั้งหมดใหม่
+            const picker = document.querySelector(`#picker_q_${qId}`);
+
+            if (picker) {
+              picker.querySelectorAll('.score-btn').forEach(btn => {
+                const selected =
+                  Number(btn.dataset.score) === Number(score);
+
+                btn.classList.toggle('selected', selected);
+                btn.setAttribute(
+                  'aria-pressed',
+                  selected ? 'true' : 'false'
+                );
+              });
+            }
+
+            document
+              .querySelector(`#row_q_${qId}`)
+              ?.classList.remove('unanswered');
+          }'''
+
+          if old not in text:
+              raise SystemExit("Expected setAnswer function was not found; aborting.")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js
+          git diff --cached --quiet || git commit -m "fix: show selected assessment score immediately"
+          git push
 
       # config.js is gitignored and never committed — this step creates it
       # fresh inside the runner's workspace, from repo secrets, right before
