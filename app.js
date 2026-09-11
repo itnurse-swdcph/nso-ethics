@@ -1473,9 +1473,34 @@ function renderSurveyPage() {
 
 function setAnswer(qId, score) {
   state.answers[qId] = score;
-  const storageKey = `np_ethics_answers_${state.user.id}_${state.currentAssessment.assignment_id}`;
-  localStorage.setItem(storageKey, JSON.stringify(state.answers));
-  document.querySelector(`#row_q_${qId}`)?.classList.remove('unanswered');
+
+  const storageKey =
+    `np_ethics_answers_${state.user.id}_${state.currentAssessment.assignment_id}`;
+
+  localStorage.setItem(
+    storageKey,
+    JSON.stringify(state.answers)
+  );
+
+  // อัปเดตปุ่มคะแนนทันที โดยไม่ render หน้าทั้งหมดใหม่
+  const picker = document.querySelector(`#picker_q_${qId}`);
+
+  if (picker) {
+    picker.querySelectorAll('.score-btn').forEach(btn => {
+      const selected =
+        Number(btn.dataset.score) === Number(score);
+
+      btn.classList.toggle('selected', selected);
+      btn.setAttribute(
+        'aria-pressed',
+        selected ? 'true' : 'false'
+      );
+    });
+  }
+
+  document
+    .querySelector(`#row_q_${qId}`)
+    ?.classList.remove('unanswered');
 }
 
 function saveAssessmentDraft() {
