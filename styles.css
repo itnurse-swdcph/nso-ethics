@@ -45,3 +45,20 @@
 /* Site Footer */
 .site-footer{text-align:center;padding:18px 24px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);background:#fff;margin-top:40px}
 .site-footer strong{color:var(--navy)}
+
+/* Individual assessment report: full-screen on desktop, responsive on mobile */
+.modal-bg:has(.report-cards-grid){padding:0;place-items:stretch}
+.modal-bg:has(.report-cards-grid) .modal{width:100%;max-width:none;height:100%;max-height:none;border-radius:0;padding:24px 30px;overflow:auto}
+.modal-bg:has(.report-cards-grid) .modal-head{position:sticky;top:0;background:#fff;z-index:2;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.modal-bg:has(.report-cards-grid) .comparison-table-wrap{overflow:auto;max-width:100%}
+.modal-bg:has(.report-cards-grid) .comparison-table{min-width:980px}
+@media(max-width:780px){
+  .modal-bg:has(.report-cards-grid){padding:0;display:block;overflow:hidden}
+  .modal-bg:has(.report-cards-grid) .modal{width:100vw;height:100dvh;max-width:none;max-height:none;border-radius:0;padding:14px 12px calc(18px + env(safe-area-inset-bottom));overflow:auto;-webkit-overflow-scrolling:touch}
+  .modal-bg:has(.report-cards-grid) .modal-head{position:sticky;top:-14px;padding:10px 0 12px;margin-bottom:12px}
+  .modal-bg:has(.report-cards-grid) .modal-head h3{font-size:16px;line-height:1.35;padding-right:8px}
+  .modal-bg:has(.report-cards-grid) .report-cards-grid{grid-template-columns:1fr!important;gap:10px!important}
+  .modal-bg:has(.report-cards-grid) .report-card{padding:14px}
+  .modal-bg:has(.report-cards-grid) .report-card-score{font-size:28px}
+  .modal-bg:has(.report-cards-grid) .comparison-table-wrap{margin-left:-4px;margin-right:-4px;width:calc(100% + 8px)}
+}
