@@ -1,0 +1,57 @@
+/* Report popup: use only the content area beside the fixed sidebar on desktop. */
+body:has(.app-sidebar) .modal-bg:has(.report-cards-grid) {
+  left: 260px;
+  width: calc(100vw - 260px);
+  right: auto;
+  padding: 0;
+  place-items: stretch;
+}
+
+body:has(.app-sidebar) .app-sidebar.collapsed ~ .modal-bg:has(.report-cards-grid) {
+  left: 64px;
+  width: calc(100vw - 64px);
+}
+
+.modal-bg:has(.report-cards-grid) .modal {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+  padding: 20px 28px;
+  overflow: auto;
+  min-width: 0;
+}
+
+.modal-bg:has(.report-cards-grid) .comparison-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.modal-bg:has(.report-cards-grid) .comparison-table {
+  min-width: 980px;
+}
+
+@media (max-width: 780px) {
+  body:has(.app-sidebar) .modal-bg:has(.report-cards-grid),
+  body:has(.app-sidebar) .app-sidebar.collapsed ~ .modal-bg:has(.report-cards-grid) {
+    left: 0;
+    width: 100vw;
+    right: 0;
+    padding: 0;
+    display: block;
+    overflow: hidden;
+  }
+
+  .modal-bg:has(.report-cards-grid) .modal {
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    padding: 14px 12px calc(18px + env(safe-area-inset-bottom));
+    border-radius: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
