@@ -27,10 +27,8 @@
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 
-  const personName = (p) => p?.full_name || '—';
-
-  function selectHtml(list, selected, placeholder, cls, extra = '') {
-    return `<select class="org-select ${cls}" ${extra}>
+  function selectHtml(list, selected, placeholder, cls) {
+    return `<select class="org-select ${cls}">
       <option value="">${esc(placeholder)}</option>
       ${list.map(p => `<option value="${esc(p.id)}" ${p.id === selected ? 'selected' : ''}>${esc(p.full_name)}${p.position ? ` — ${esc(p.position)}` : ''}</option>`).join('')}
     </select>`;
@@ -53,6 +51,10 @@
       .org-toolbar{display:flex;gap:8px;align-items:center}.org-btn{border:0;border-radius:9px;padding:9px 13px;cursor:pointer;font-family:inherit;font-weight:600}.org-btn.primary{background:#0d7892;color:#fff}.org-btn.secondary{background:#edf4f6;color:#234858}.org-btn:disabled{opacity:.55;cursor:wait}
       .org-empty{text-align:center;padding:40px;color:#71838c}.org-note{background:#f7fbfc;border:1px solid #dcecef;border-radius:10px;padding:10px 12px;margin-bottom:12px;color:#526c78;font-size:12px}
       @media(max-width:700px){.org-structure-modal{padding:0}.org-structure-card{height:100vh;border-radius:0}.org-structure-head{padding:14px}.org-structure-body{padding:10px}.org-structure-table{min-width:980px}}
+      .org-sidebar-nav-item{width:100%;display:flex;align-items:center;gap:10px;text-align:left;background:transparent;border:0;color:inherit;cursor:pointer;font:inherit;padding:10px 14px;border-radius:10px;margin-top:4px}
+      .org-sidebar-nav-item:hover{background:rgba(13,120,146,.10)}
+      .org-sidebar-nav-item .nav-btn-icon{width:20px;text-align:center;flex:0 0 20px}
+      .org-sidebar-nav-item .nav-btn-text{white-space:nowrap}
     `;
     document.head.appendChild(style);
   }
@@ -110,7 +112,6 @@
               head_nurse_user_id: tr.querySelector('.org-head-nurse').value || null,
             });
             status.textContent = 'บันทึกแล้ว'; status.className = 'org-status ok';
-            // Refresh the table so group/global propagation is immediately visible.
             setTimeout(() => renderStructure(), 350);
           } catch (err) {
             console.error(err); status.textContent = `บันทึกไม่สำเร็จ: ${err.message}`; status.className = 'org-status err'; btn.disabled = false;
@@ -123,23 +124,44 @@
     }
   }
 
-  function injectAdminButton() {
-    if (document.getElementById('org-structure-admin-button')) return;
-    const candidates = Array.from(document.querySelectorAll('button')).filter(b => (b.textContent || '').includes('จัดการบุคลากร'));
-    if (!candidates.length) return;
-    const source = candidates[0];
-    const btn = source.cloneNode(true);
-    btn.id = 'org-structure-admin-button';
-    btn.innerHTML = '<i class="fa-solid fa-sitemap"></i> โครงสร้างบังคับบัญชา';
-    btn.classList.remove('outline');
-    btn.addEventListener('click', renderStructure);
-    source.parentElement?.appendChild(btn);
+  function injectAdminSidebarItem() {
+    if (document.getElementById('org-structure-sidebar-item')) return;
+    const sidebar = document.querySelector('.app-sidebar');
+    if (!sidebar) return;
+
+    const labels = Array.from(sidebar.querySelectorAll('.sidebar-nav-label'));
+    const adminLabel = labels.find(el => (el.textContent || '').includes('ระบบบริหารจัดการ'));
+    if (!adminLabel) return;
+
+    const item = document.createElement('button');
+    item.id = 'org-structure-sidebar-item';
+    item.type = 'button';
+    item.className = 'nav-btn org-sidebar-nav-item';
+    item.innerHTML = '<i class="fa-solid fa-sitemap nav-btn-icon"></i><span class="nav-btn-text">5. โครงสร้างบังคับบัญชา</span>';
+    item.title = 'โครงสร้างบังคับบัญชา';
+    item.addEventListener('click', () => {
+      closeMobileSidebar();
+      renderStructure();
+    });
+
+    // Put it immediately after the existing admin menu items, before the next sidebar section.
+    let anchor = adminLabel.nextElementSibling;
+    while (anchor && !anchor.classList.contains('sidebar-nav-label')) {
+      if (anchor.tagName === 'DIV' || anchor.tagName === 'BUTTON' || anchor.classList.contains('nav-btn')) {
+        anchor = anchor.nextElementSibling;
+      } else {
+        anchor = anchor.nextElementSibling;
+      }
+    }
+    if (anchor) anchor.parentNode.insertBefore(item, anchor);
+    else adminLabel.parentNode.appendChild(item);
   }
 
   function boot() {
-    const observer = new MutationObserver(() => injectAdminButton());
+    ensureStyles();
+    const observer = new MutationObserver(() => injectAdminSidebarItem());
     observer.observe(document.body, { childList: true, subtree: true });
-    injectAdminButton();
+    injectAdminSidebarItem();
     window.renderEthicsOrgStructure = renderStructure;
   }
 
