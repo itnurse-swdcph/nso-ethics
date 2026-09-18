@@ -1992,82 +1992,118 @@ function exportSummaryExcel() {
 
 function exportNurseDetailedExcel() {
   if (typeof XLSX === 'undefined') return toast('ไลบรารีสำหรับสร้าง Excel กำลังโหลด กรุณาลองใหม่');
-  showSkeletonLoading('กำลังดึงคะแนนประเมินรายข้อของพยาบาลทุกคน...');
+  showSkeletonLoading('กำลังสร้าง Excel คะแนนรายข้อ...');
 
   (async () => {
     try {
       if (!cloudEnabled()) throw new Error('ต้องเชื่อมต่อ Supabase เพื่อส่งออกข้อมูลรายละเอียด');
 
       const data = await api('get_nurse_detailed_export');
-      const rows = data?.rows || [];
-      const periodName = data?.activePeriod?.name || state.activePeriod.name;
+      const assessments = Array.isArray(data?.assessments) ? data.assessments : [];
+      const periodName = data?.activePeriod?.name || state.activePeriod?.name || 'รอบปัจจุบัน';
+      const questionCounts = {
+        NURSE: Number(data?.questionCounts?.NURSE || 64),
+        HEAD: Number(data?.questionCounts?.HEAD || 65)
+      };
 
-      const detailRows = [[
-        'ลำดับ','ชื่อ-นามสกุล','ตำแหน่ง','หน่วยงาน','ข้อที่','Question Pair ID',
-        'ข้อคำถาม Self','คะแนน Self','ข้อคำถาม Other','คะแนน Other','ผลต่าง',
-        'ผู้ประเมิน Self','วันที่ประเมิน Self','ผู้ประเมิน Other','วันที่ประเมิน Other',
-        'ค่าเฉลี่ย Self','ค่าเฉลี่ย Other','สถานะการประเมิน'
-      ]];
+      // 1 แถว = 1 การประเมิน
+      // พยาบาลประจำการ: Self 1 แถว + หัวหน้าประเมิน 1 แถว
+      // หัวหน้างาน/หัวหน้ากลุ่มงาน: Self 1 แถว + หัวหน้าประเมิน 1 แถว
+      // หัวหน้าพยาบาล: ตามโครงสร้างปัจจุบันมีเฉพาะหัวหน้าประเมิน (Other)
+      const buildSheet = (sheetType) => {
+        const maxQ = sheetType === 'NURSE' ? questionCounts.NURSE : questionCounts.HEAD;
+        const list = assessments
+          .filter(r => r.sheet === sheetType)
+          .sort((a, b) => {
+            const nameCmp = String(a.full_name || '').localeCompare(String(b.full_name || ''), 'th');
+            if (nameCmp !== 0) return nameCmp;
+            const typeOrder = { SELF: 0, OTHER: 1 };
+            return (typeOrder[a.assessment_type] ?? 9) - (typeOrder[b.assessment_type] ?? 9);
+          });
 
-      rows.forEach((r, i) => {
-        detailRows.push([
-          i + 1, r.full_name, r.position, r.department, r.question_no ?? '',
-          r.question_pair_id || '', r.self_question || '', r.self_score ?? '',
-          r.other_question || '', r.other_score ?? '', r.difference ?? '',
-          r.self_evaluator || '', r.self_date ? new Date(r.self_date).toLocaleDateString('th-TH') : '',
-          r.other_evaluator || '', r.other_date ? new Date(r.other_date).toLocaleDateString('th-TH') : '',
-          r.self_average ?? '', r.other_average ?? '', r.completion || ''
-        ]);
-      });
+        const headers = [
+          'ลำดับ',
+          'ชื่อ-นามสกุล',
+          'ตำแหน่ง',
+          'หน่วยงาน',
+          'บทบาท',
+          'ประเภทการประเมิน',
+          'ผู้ประเมิน',
+          'วันที่ประเมิน',
+          'คะแนนรวม',
+          'คะแนนเฉลี่ย',
+          'สถานะ',
+          ...Array.from({ length: maxQ }, (_, i) => 'ข้อ ' + (i + 1))
+        ];
 
-      const summaryRows = [[
-        'หน่วยงาน','จำนวนพยาบาล','ประเมินครบตามเกณฑ์ (Self)','% ครบ','Other เสร็จ',
-        'คะแนนเฉลี่ย Self','คะแนนเฉลี่ย Other'
-      ]];
-      (state.executiveData?.departmentSummary || []).forEach(d => {
-        summaryRows.push([
-          d.department, d.total_users, d.complete_count ?? d.self_completed,
-          (d.completion_rate ?? 0) + '%', d.other_completed,
-          d.self_avg ?? '', d.other_avg ?? ''
-        ]);
-      });
+        const rows = [headers];
 
-      const peopleMap = new Map();
-      rows.forEach(r => {
-        if (!peopleMap.has(r.nurse_id)) {
-          peopleMap.set(r.nurse_id, [
-            r.full_name, r.position, r.department,
-            r.self_average ?? '', r.other_average ?? '',
-            r.self_average != null && r.other_average != null
-              ? Number((Number(r.other_average) - Number(r.self_average)).toFixed(2)) : '',
-            r.completion || ''
-          ]);
-        }
-      });
-      const peopleRows = [[
-        'ชื่อ-นามสกุล','ตำแหน่ง','หน่วยงาน','คะแนนเฉลี่ย Self',
-        'คะแนนเฉลี่ย Other','ผลต่าง','สถานะ'
-      ], ...Array.from(peopleMap.values())];
+        list.forEach((r, index) => {
+          const row = [
+            index + 1,
+            r.full_name || '',
+            r.position || '',
+            r.department || '',
+            r.role_label || '',
+            r.assessment_type_label || (r.assessment_type === 'SELF' ? 'ประเมินตนเอง' : 'ประเมินโดยหัวหน้า'),
+            r.evaluator_name || '',
+            r.submitted_at ? new Date(r.submitted_at).toLocaleDateString('th-TH') : '',
+            r.total_score ?? '',
+            r.average_score ?? '',
+            r.status === 'COMPLETED' ? 'ประเมินแล้ว' : 'ยังไม่ประเมิน'
+          ];
+
+          for (let q = 1; q <= maxQ; q++) {
+            row.push(r.scores && Object.prototype.hasOwnProperty.call(r.scores, String(q))
+              ? r.scores[String(q)]
+              : '');
+          }
+
+          rows.push(row);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+
+        // กำหนดความกว้างคอลัมน์ให้อ่านง่าย
+        ws['!cols'] = [
+          { wch: 7 },   // ลำดับ
+          { wch: 28 },  // ชื่อ
+          { wch: 24 },  // ตำแหน่ง
+          { wch: 38 },  // หน่วยงาน
+          { wch: 20 },  // บทบาท
+          { wch: 20 },  // ประเภท
+          { wch: 28 },  // ผู้ประเมิน
+          { wch: 16 },  // วันที่
+          { wch: 12 },  // รวม
+          { wch: 13 },  // เฉลี่ย
+          { wch: 16 },  // สถานะ
+          ...Array.from({ length: maxQ }, () => ({ wch: 8 }))
+        ];
+
+        // Freeze header + identity columns และเปิด filter
+        ws['!freeze'] = { xSplit: 11, ySplit: 1 };
+        ws['!autofilter'] = { ref: XLSX.utils.encode_range({
+          s: { r: 0, c: 0 },
+          e: { r: Math.max(0, rows.length - 1), c: headers.length - 1 }
+        }) };
+
+        return ws;
+      };
 
       const wb = XLSX.utils.book_new();
-      const ws1 = XLSX.utils.aoa_to_sheet(detailRows);
-      const ws2 = XLSX.utils.aoa_to_sheet(summaryRows);
-      const ws3 = XLSX.utils.aoa_to_sheet(peopleRows);
+      const nurseSheet = buildSheet('NURSE');
+      const headSheet = buildSheet('HEAD');
 
-      ws1['!cols'] = [
-        {wch:7},{wch:28},{wch:25},{wch:35},{wch:7},{wch:20},
-        {wch:55},{wch:10},{wch:55},{wch:10},{wch:10},
-        {wch:28},{wch:16},{wch:28},{wch:16},{wch:14},{wch:14},{wch:22}
-      ];
-      ws2['!cols'] = [{wch:40},{wch:14},{wch:22},{wch:12},{wch:14},{wch:18},{wch:18}];
-      ws3['!cols'] = [{wch:28},{wch:25},{wch:40},{wch:16},{wch:16},{wch:12},{wch:22}];
+      XLSX.utils.book_append_sheet(wb, nurseSheet, 'พยาบาลประจำการ');
+      XLSX.utils.book_append_sheet(wb, headSheet, 'หัวหน้า');
 
-      XLSX.utils.book_append_sheet(wb, ws1, 'คะแนนรายข้อ');
-      XLSX.utils.book_append_sheet(wb, ws2, 'สรุปหน่วยงาน');
-      XLSX.utils.book_append_sheet(wb, ws3, 'สรุปบุคลากร');
+      const safePeriod = String(periodName).replace(/[^0-9ก-๙A-Za-z]+/g, '_');
+      XLSX.writeFile(
+        wb,
+        'คะแนนรายข้อ_รายบุคคล_1แถวต่อ1การประเมิน_' + safePeriod + '.xlsx'
+      );
 
-      XLSX.writeFile(wb, 'รายงานคะแนนประเมินรายพยาบาล_รายละเอียด_' + periodName.replace(/[^0-9ก-๙A-Za-z]+/g, '_') + '.xlsx');
-      toast('ส่งออกคะแนนประเมินรายพยาบาลทุกคนเรียบร้อยแล้ว');
+      toast('ส่งออก Excel คะแนนรายข้อเรียบร้อยแล้ว');
     } catch (e) {
       console.error(e);
       toast('ไม่สามารถส่งออกข้อมูลรายละเอียดได้: ' + (e.message || 'เกิดข้อผิดพลาด'));
