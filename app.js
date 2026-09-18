@@ -1992,25 +1992,29 @@ function exportSummaryExcel() {
 
 function exportNurseDetailedExcel() {
   if (typeof XLSX === 'undefined') return toast('ไลบรารีสำหรับสร้าง Excel กำลังโหลด กรุณาลองใหม่');
-  showSkeletonLoading('กำลังสร้าง Excel คะแนนรายข้อ...');
+  showSkeletonLoading('กำลังสร้าง Excel รายงานการประเมิน...');
 
   (async () => {
     try {
       if (!cloudEnabled()) throw new Error('ต้องเชื่อมต่อ Supabase เพื่อส่งออกข้อมูลรายละเอียด');
 
-      const data = await api('get_nurse_detailed_export');
-      const assessments = Array.isArray(data?.assessments) ? data.assessments : [];
-      const periodName = data?.activePeriod?.name || state.activePeriod?.name || 'รอบปัจจุบัน';
+      // ดึงข้อมูลทั้งคะแนนรายข้อ และข้อมูลสรุปเดิม
+      const [detailData, executiveData] = await Promise.all([
+        api('get_nurse_detailed_export'),
+        api('get_executive_report')
+      ]);
+
+      const assessments = Array.isArray(detailData?.assessments) ? detailData.assessments : [];
+      const periodName = detailData?.activePeriod?.name || executiveData?.activePeriod?.name || state.activePeriod?.name || 'รอบปัจจุบัน';
       const questionCounts = {
-        NURSE: Number(data?.questionCounts?.NURSE || 64),
-        HEAD: Number(data?.questionCounts?.HEAD || 65)
+        NURSE: Number(detailData?.questionCounts?.NURSE || 64),
+        HEAD: Number(detailData?.questionCounts?.HEAD || 65)
       };
 
-      // 1 แถว = 1 การประเมิน
-      // พยาบาลประจำการ: Self 1 แถว + หัวหน้าประเมิน 1 แถว
-      // หัวหน้างาน/หัวหน้ากลุ่มงาน: Self 1 แถว + หัวหน้าประเมิน 1 แถว
-      // หัวหน้าพยาบาล: ตามโครงสร้างปัจจุบันมีเฉพาะหัวหน้าประเมิน (Other)
-      const buildSheet = (sheetType) => {
+      // ============================================================
+      // 1) คะแนนรายข้อ: 1 แถว = 1 การประเมิน
+      // ============================================================
+      const buildDetailSheet = (sheetType) => {
         const maxQ = sheetType === 'NURSE' ? questionCounts.NURSE : questionCounts.HEAD;
         const list = assessments
           .filter(r => r.sheet === sheetType)
@@ -2022,17 +2026,9 @@ function exportNurseDetailedExcel() {
           });
 
         const headers = [
-          'ลำดับ',
-          'ชื่อ-นามสกุล',
-          'ตำแหน่ง',
-          'หน่วยงาน',
-          'บทบาท',
-          'ประเภทการประเมิน',
-          'ผู้ประเมิน',
-          'วันที่ประเมิน',
-          'คะแนนรวม',
-          'คะแนนเฉลี่ย',
-          'สถานะ',
+          'ลำดับ', 'ชื่อ-นามสกุล', 'ตำแหน่ง', 'หน่วยงาน', 'บทบาท',
+          'ประเภทการประเมิน', 'ผู้ประเมิน', 'วันที่ประเมิน',
+          'คะแนนรวม', 'คะแนนเฉลี่ย', 'สถานะ',
           ...Array.from({ length: maxQ }, (_, i) => 'ข้อ ' + (i + 1))
         ];
 
@@ -2058,44 +2054,144 @@ function exportNurseDetailedExcel() {
               ? r.scores[String(q)]
               : '');
           }
-
           rows.push(row);
         });
 
         const ws = XLSX.utils.aoa_to_sheet(rows);
-
-        // กำหนดความกว้างคอลัมน์ให้อ่านง่าย
         ws['!cols'] = [
-          { wch: 7 },   // ลำดับ
-          { wch: 28 },  // ชื่อ
-          { wch: 24 },  // ตำแหน่ง
-          { wch: 38 },  // หน่วยงาน
-          { wch: 20 },  // บทบาท
-          { wch: 20 },  // ประเภท
-          { wch: 28 },  // ผู้ประเมิน
-          { wch: 16 },  // วันที่
-          { wch: 12 },  // รวม
-          { wch: 13 },  // เฉลี่ย
-          { wch: 16 },  // สถานะ
+          { wch: 7 }, { wch: 28 }, { wch: 24 }, { wch: 38 }, { wch: 20 },
+          { wch: 20 }, { wch: 28 }, { wch: 16 }, { wch: 12 }, { wch: 13 }, { wch: 16 },
           ...Array.from({ length: maxQ }, () => ({ wch: 8 }))
         ];
-
-        // Freeze header + identity columns และเปิด filter
         ws['!freeze'] = { xSplit: 11, ySplit: 1 };
         ws['!autofilter'] = { ref: XLSX.utils.encode_range({
           s: { r: 0, c: 0 },
           e: { r: Math.max(0, rows.length - 1), c: headers.length - 1 }
         }) };
+        return ws;
+      };
 
+      // ============================================================
+      // 2) สรุปหน่วยงาน — คงรูปแบบเดิม และเพิ่มข้อมูลการประเมินครบ
+      // ============================================================
+      const buildDepartmentSummarySheet = () => {
+        const list = Array.isArray(executiveData?.departmentSummary)
+          ? executiveData.departmentSummary
+          : [];
+
+        const headers = [
+          'ลำดับ',
+          'หน่วยงาน',
+          'จำนวนพยาบาล',
+          'ประเมินตนเองเสร็จ',
+          'ประเมินโดยหัวหน้าเสร็จ',
+          'ประเมินครบตามเกณฑ์',
+          '% ครบ',
+          'Self Avg',
+          'Other Avg',
+          'ผลต่าง Other-Self'
+        ];
+
+        const rows = [headers];
+        list.forEach((d, i) => rows.push([
+          i + 1,
+          d.department || 'ไม่ระบุหน่วยงาน',
+          d.total_users ?? 0,
+          d.self_completed ?? 0,
+          d.other_completed ?? 0,
+          d.complete_count ?? 0,
+          d.completion_rate ?? 0,
+          d.self_avg ?? '',
+          d.other_avg ?? '',
+          d.difference ?? ''
+        ]));
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [
+          { wch: 7 }, { wch: 42 }, { wch: 14 }, { wch: 18 }, { wch: 22 },
+          { wch: 18 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 18 }
+        ];
+        ws['!freeze'] = { xSplit: 2, ySplit: 1 };
+        ws['!autofilter'] = { ref: XLSX.utils.encode_range({
+          s: { r: 0, c: 0 },
+          e: { r: Math.max(0, rows.length - 1), c: headers.length - 1 }
+        }) };
+        return ws;
+      };
+
+      // ============================================================
+      // 3) สรุปบุคลากร — คงข้อมูลเดิมรายบุคคล
+      // ============================================================
+      const buildIndividualSummarySheet = () => {
+        const list = Array.isArray(executiveData?.individuals)
+          ? executiveData.individuals
+          : [];
+
+        const roleLabels = {
+          NURSE: 'พยาบาลประจำการ',
+          UNIT_HEAD: 'หัวหน้างาน',
+          GROUP_HEAD: 'หัวหน้ากลุ่มงาน',
+          HEAD_NURSE: 'หัวหน้าพยาบาล'
+        };
+
+        const statusLabels = {
+          COMPLETED: 'ประเมินครบ',
+          WAITING_OTHER: 'Self แล้ว / รอ Other',
+          NOT_STARTED: 'ยังไม่ประเมิน'
+        };
+
+        const headers = [
+          'ลำดับ',
+          'ชื่อ-นามสกุล',
+          'ตำแหน่ง',
+          'บทบาท',
+          'หน่วยงาน',
+          'Self Avg',
+          'Other Avg',
+          'ผลต่าง Other-Self',
+          'วันที่ประเมินตนเอง',
+          'วันที่หัวหน้าประเมิน',
+          'สถานะ'
+        ];
+
+        const rows = [headers];
+        list
+          .slice()
+          .sort((a, b) => String(a.full_name || '').localeCompare(String(b.full_name || ''), 'th'))
+          .forEach((p, i) => rows.push([
+            i + 1,
+            p.full_name || '',
+            p.position || '',
+            roleLabels[p.role] || p.role || '',
+            p.department || 'ไม่ระบุหน่วยงาน',
+            p.self_avg ?? '',
+            p.other_avg ?? '',
+            p.difference ?? '',
+            p.self_submitted_at ? new Date(p.self_submitted_at).toLocaleDateString('th-TH') : '',
+            p.other_submitted_at ? new Date(p.other_submitted_at).toLocaleDateString('th-TH') : '',
+            statusLabels[p.status] || p.status || ''
+          ]));
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [
+          { wch: 7 }, { wch: 28 }, { wch: 24 }, { wch: 20 }, { wch: 38 },
+          { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 22 }
+        ];
+        ws['!freeze'] = { xSplit: 5, ySplit: 1 };
+        ws['!autofilter'] = { ref: XLSX.utils.encode_range({
+          s: { r: 0, c: 0 },
+          e: { r: Math.max(0, rows.length - 1), c: headers.length - 1 }
+        }) };
         return ws;
       };
 
       const wb = XLSX.utils.book_new();
-      const nurseSheet = buildSheet('NURSE');
-      const headSheet = buildSheet('HEAD');
 
-      XLSX.utils.book_append_sheet(wb, nurseSheet, 'พยาบาลประจำการ');
-      XLSX.utils.book_append_sheet(wb, headSheet, 'หัวหน้า');
+      // ลำดับชีตตามที่ต้องการ: คะแนน 2 ชีต + สรุป 2 ชีต
+      XLSX.utils.book_append_sheet(wb, buildDetailSheet('NURSE'), 'พยาบาลประจำการ');
+      XLSX.utils.book_append_sheet(wb, buildDetailSheet('HEAD'), 'หัวหน้า');
+      XLSX.utils.book_append_sheet(wb, buildDepartmentSummarySheet(), 'สรุปหน่วยงาน');
+      XLSX.utils.book_append_sheet(wb, buildIndividualSummarySheet(), 'สรุปบุคลากร');
 
       const safePeriod = String(periodName).replace(/[^0-9ก-๙A-Za-z]+/g, '_');
       XLSX.writeFile(
@@ -2103,7 +2199,7 @@ function exportNurseDetailedExcel() {
         'คะแนนรายข้อ_รายบุคคล_1แถวต่อ1การประเมิน_' + safePeriod + '.xlsx'
       );
 
-      toast('ส่งออก Excel คะแนนรายข้อเรียบร้อยแล้ว');
+      toast('ส่งออก Excel ครบ 4 ชีตเรียบร้อยแล้ว');
     } catch (e) {
       console.error(e);
       toast('ไม่สามารถส่งออกข้อมูลรายละเอียดได้: ' + (e.message || 'เกิดข้อผิดพลาด'));
