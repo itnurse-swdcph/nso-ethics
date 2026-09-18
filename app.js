@@ -1848,7 +1848,7 @@ function renderExecutiveReportsView() {
         <span class="muted">การส่งออกข้อมูลสถิติ</span>
         <div style="margin-top:8px">
           <button class="btn small" onclick="exportSummaryExcel()"><i class="fa-solid fa-file-excel"></i> Export Summary</button>
-          <button class="btn outline small" onclick="exportDetailExcel()"><i class="fa-solid fa-file-lines"></i> Export Detail</button>
+          <button class="btn outline small" onclick="exportNurseDetailedExcel()"><i class="fa-solid fa-file-lines"></i> Export คะแนนรายพยาบาล</button>
         </div>
       </div>
     </div>
@@ -1903,7 +1903,8 @@ function renderExecutiveReportsView() {
             <tr>
               <th>หน่วยงาน / หอผู้ป่วย</th>
               <th style="text-align:center">จำนวนบุคลากร</th>
-              <th style="text-align:center">Self เสร็จ</th>
+              <th style="text-align:center">ประเมินครบตามเกณฑ์</th>
+              <th style="text-align:center">% ครบ</th>
               <th style="text-align:center">Other เสร็จ</th>
               <th style="text-align:center">Self Avg</th>
               <th style="text-align:center">Other Avg</th>
@@ -1915,7 +1916,10 @@ function renderExecutiveReportsView() {
               <tr>
                 <td><strong>${esc(d.department)}</strong></td>
                 <td style="text-align:center">${d.total_users}</td>
-                <td style="text-align:center">${d.self_completed}</td>
+                <td style="text-align:center"><strong>${d.complete_count ?? d.self_completed}</strong> / ${d.total_users}</td>
+                <td style="text-align:center">
+                  <span class="badge ${(d.completion_rate ?? 0) === 100 ? 'done' : 'pending'}">${d.completion_rate ?? 0}%</span>
+                </td>
                 <td style="text-align:center">${d.other_completed}</td>
                 <td style="text-align:center;font-weight:600;color:#1d4ed8">${d.self_avg !== null ? `${d.self_avg.toFixed(2)}` : '—'}</td>
                 <td style="text-align:center;font-weight:600;color:#047857">${d.other_avg !== null ? `${d.other_avg.toFixed(2)}` : '—'}</td>
@@ -1986,25 +1990,95 @@ function exportSummaryExcel() {
   toast('ดาวน์โหลด Excel เรียบร้อยแล้ว');
 }
 
+function exportNurseDetailedExcel() {
+  if (typeof XLSX === 'undefined') return toast('ไลบรารีสำหรับสร้าง Excel กำลังโหลด กรุณาลองใหม่');
+  showSkeletonLoading('กำลังดึงคะแนนประเมินรายข้อของพยาบาลทุกคน...');
+
+  (async () => {
+    try {
+      if (!cloudEnabled()) throw new Error('ต้องเชื่อมต่อ Supabase เพื่อส่งออกข้อมูลรายละเอียด');
+
+      const data = await api('get_nurse_detailed_export');
+      const rows = data?.rows || [];
+      const periodName = data?.activePeriod?.name || state.activePeriod.name;
+
+      const detailRows = [[
+        'ลำดับ','ชื่อ-นามสกุล','ตำแหน่ง','หน่วยงาน','ข้อที่','Question Pair ID',
+        'ข้อคำถาม Self','คะแนน Self','ข้อคำถาม Other','คะแนน Other','ผลต่าง',
+        'ผู้ประเมิน Self','วันที่ประเมิน Self','ผู้ประเมิน Other','วันที่ประเมิน Other',
+        'ค่าเฉลี่ย Self','ค่าเฉลี่ย Other','สถานะการประเมิน'
+      ]];
+
+      rows.forEach((r, i) => {
+        detailRows.push([
+          i + 1, r.full_name, r.position, r.department, r.question_no ?? '',
+          r.question_pair_id || '', r.self_question || '', r.self_score ?? '',
+          r.other_question || '', r.other_score ?? '', r.difference ?? '',
+          r.self_evaluator || '', r.self_date ? new Date(r.self_date).toLocaleDateString('th-TH') : '',
+          r.other_evaluator || '', r.other_date ? new Date(r.other_date).toLocaleDateString('th-TH') : '',
+          r.self_average ?? '', r.other_average ?? '', r.completion || ''
+        ]);
+      });
+
+      const summaryRows = [[
+        'หน่วยงาน','จำนวนพยาบาล','ประเมินครบตามเกณฑ์ (Self)','% ครบ','Other เสร็จ',
+        'คะแนนเฉลี่ย Self','คะแนนเฉลี่ย Other'
+      ]];
+      (state.executiveData?.departmentSummary || []).forEach(d => {
+        summaryRows.push([
+          d.department, d.total_users, d.complete_count ?? d.self_completed,
+          (d.completion_rate ?? 0) + '%', d.other_completed,
+          d.self_avg ?? '', d.other_avg ?? ''
+        ]);
+      });
+
+      const peopleMap = new Map();
+      rows.forEach(r => {
+        if (!peopleMap.has(r.nurse_id)) {
+          peopleMap.set(r.nurse_id, [
+            r.full_name, r.position, r.department,
+            r.self_average ?? '', r.other_average ?? '',
+            r.self_average != null && r.other_average != null
+              ? Number((Number(r.other_average) - Number(r.self_average)).toFixed(2)) : '',
+            r.completion || ''
+          ]);
+        }
+      });
+      const peopleRows = [[
+        'ชื่อ-นามสกุล','ตำแหน่ง','หน่วยงาน','คะแนนเฉลี่ย Self',
+        'คะแนนเฉลี่ย Other','ผลต่าง','สถานะ'
+      ], ...Array.from(peopleMap.values())];
+
+      const wb = XLSX.utils.book_new();
+      const ws1 = XLSX.utils.aoa_to_sheet(detailRows);
+      const ws2 = XLSX.utils.aoa_to_sheet(summaryRows);
+      const ws3 = XLSX.utils.aoa_to_sheet(peopleRows);
+
+      ws1['!cols'] = [
+        {wch:7},{wch:28},{wch:25},{wch:35},{wch:7},{wch:20},
+        {wch:55},{wch:10},{wch:55},{wch:10},{wch:10},
+        {wch:28},{wch:16},{wch:28},{wch:16},{wch:14},{wch:14},{wch:22}
+      ];
+      ws2['!cols'] = [{wch:40},{wch:14},{wch:22},{wch:12},{wch:14},{wch:18},{wch:18}];
+      ws3['!cols'] = [{wch:28},{wch:25},{wch:40},{wch:16},{wch:16},{wch:12},{wch:22}];
+
+      XLSX.utils.book_append_sheet(wb, ws1, 'คะแนนรายข้อ');
+      XLSX.utils.book_append_sheet(wb, ws2, 'สรุปหน่วยงาน');
+      XLSX.utils.book_append_sheet(wb, ws3, 'สรุปบุคลากร');
+
+      XLSX.writeFile(wb, 'รายงานคะแนนประเมินรายพยาบาล_รายละเอียด_' + periodName.replace(/[^0-9ก-๙A-Za-z]+/g, '_') + '.xlsx');
+      toast('ส่งออกคะแนนประเมินรายพยาบาลทุกคนเรียบร้อยแล้ว');
+    } catch (e) {
+      console.error(e);
+      toast('ไม่สามารถส่งออกข้อมูลรายละเอียดได้: ' + (e.message || 'เกิดข้อผิดพลาด'));
+    } finally {
+      hideSkeletonLoading();
+    }
+  })();
+}
+
 function exportDetailExcel() {
-  if (typeof XLSX === 'undefined') return toast('ไลบรารี Excel กำลังโหลด กรุณาลองใหม่');
-  showSkeletonLoading('กำลังสร้างไฟล์ Excel รายละเอียดรายข้อ...');
-
-  const pairs = ETHICS_QUESTION_BANK.nursePairs;
-  const rows = [
-    ['ลำดับข้อ', 'รหัสคู่คำถาม', 'ข้อคำถามประเมินตนเอง (Self Question)', 'ข้อคำถามประเมินโดยผู้อื่น (Other Question)']
-  ];
-
-  pairs.forEach(p => {
-    rows.push([p.order, p.pair_code, p.self_text, p.other_text]);
-  });
-
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Question_Pairs_Mapping');
-  XLSX.writeFile(wb, `ตารางคู่คำถามจริยธรรม_QuestionPairs.xlsx`);
-  hideSkeletonLoading();
-  toast('ดาวน์โหลด Excel รายละเอียดรายข้อเรียบร้อยแล้ว');
+  return exportNurseDetailedExcel();
 }
 
 // ----------------------------------------------------
