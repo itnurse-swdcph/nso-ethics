@@ -1812,9 +1812,9 @@ function getMockExecutiveData() {
       { role: 'GROUP_HEAD', role_label: 'หัวหน้ากลุ่มงาน', total_users: 12, self_completed: 12, other_completed: 10, self_avg: 4.52, other_avg: 4.38, difference: -0.14 }
     ],
     departmentSummary: [
-      { department: 'งานการพยาบาลผู้ป่วยนอก', total_users: 23, self_completed: 20, other_completed: 19, self_avg: 4.28, other_avg: 4.12, difference: -0.16 },
-      { department: 'งานการพยาบาลผู้ป่วยหนัก', total_users: 27, self_completed: 25, other_completed: 24, self_avg: 4.35, other_avg: 4.08, difference: -0.27 },
-      { department: 'งานการพยาบาลผู้ป่วยในอายุรกรรมชาย', total_users: 23, self_completed: 19, other_completed: 18, self_avg: 4.22, other_avg: 4.15, difference: -0.07 }
+      { department: 'งานการพยาบาลผู้ป่วยนอก', total_users: 23, self_completed: 20, other_completed: 19, complete_count: 20, completion_rate: 87, self_avg: 4.28, other_avg: 4.12, difference: -0.16 },
+      { department: 'งานการพยาบาลผู้ป่วยหนัก', total_users: 27, self_completed: 25, other_completed: 24, complete_count: 25, completion_rate: 93, self_avg: 4.35, other_avg: 4.08, difference: -0.27 },
+      { department: 'งานการพยาบาลผู้ป่วยในอายุรกรรมชาย', total_users: 23, self_completed: 19, other_completed: 18, complete_count: 19, completion_rate: 83, self_avg: 4.22, other_avg: 4.15, difference: -0.07 }
     ],
     individuals: []
   };
